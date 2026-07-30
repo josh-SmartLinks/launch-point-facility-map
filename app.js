@@ -10,7 +10,11 @@ const FACILITIES = [
   { name: "Amen Korner",           city: "Quincy, IL",                    lat: 39.9356, lng: -91.4099 },
   { name: "Eagle Bay Golf",        city: "Carver, MA",                    lat: 41.8834, lng: -70.7625 },
   { name: "Impact Golf Lounge",    city: "Charlotte, NC",                 lat: 35.2271, lng: -80.8431 },
-  { name: "1872 Golf Club",        city: "Georgetown, TX",                lat: 30.6968, lng: -97.7203 }
+  { name: "1872 Golf Club",        city: "Georgetown, TX",                lat: 30.6968, lng: -97.7203 },
+  { name: "Twisted Tee Golf",      city: "Owasso, OK",                    lat: 36.2695, lng: -95.8547 },
+  { name: "O'Fallon Golf Studio",  city: "O'Fallon, IL",                  lat: 38.5922, lng: -89.9110 },
+  { name: "Ace & Irons",           city: "Calgary, Alberta",              lat: 51.0447, lng: -114.0719 },
+  { name: "Launch Point",          city: "Princeton, MN",                 lat: 45.5697, lng: -93.5808 }
 ];
 
 // ---------- Map ----------
@@ -18,6 +22,9 @@ const map = L.map("map", {
   worldCopyJump: true,
   zoomControl: true
 });
+
+// Required OSM/CARTO credit stays, but drop the optional "Leaflet" prefix.
+map.attributionControl.setPrefix(false);
 
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
   attribution:

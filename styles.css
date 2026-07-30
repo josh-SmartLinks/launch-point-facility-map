@@ -99,6 +99,52 @@ html, body {
   overflow: hidden;
 }
 
+/* ---------- Apply button ---------- */
+.apply-btn {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  color: var(--lp-white);
+  background: var(--lp-blue);
+  border: 1px solid var(--lp-blue);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+/* Sidebar variant */
+#apply-btn {
+  margin: 14px;
+  padding: 12px 14px;
+}
+#apply-btn:hover {
+  background: var(--lp-black);
+  color: var(--lp-blue);
+}
+#apply-btn:focus-visible {
+  outline: 2px solid var(--lp-white);
+  outline-offset: 2px;
+}
+
+/* Mobile floating variant (hidden on desktop) */
+#apply-fab {
+  display: none;
+  position: fixed;
+  z-index: 1300;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  padding: 12px 22px;
+  font-size: 14px;
+}
+#apply-fab:hover {
+  background: var(--lp-black);
+  color: var(--lp-blue);
+}
+#apply-fab:focus-visible {
+  outline: 2px solid var(--lp-white);
+  outline-offset: 2px;
+}
+
 .search-wrap {
   padding: 14px;
   border-bottom: 1px solid var(--lp-blue);
@@ -227,9 +273,14 @@ html, body {
 
 /* ---------- Attribution (kept legible, blue links) ---------- */
 .leaflet-control-attribution {
-  background: rgba(0,0,0,0.7) !important;
+  background: rgba(0,0,0,0.55) !important;
   color: var(--lp-white) !important;
+  opacity: 0.55;
+  font-size: 9px !important;
+  padding: 0 5px !important;
+  line-height: 1.4;
 }
+.leaflet-control-attribution:hover { opacity: 1; }
 .leaflet-control-attribution a { color: var(--lp-blue) !important; }
 
 /* Zoom controls in brand colors */
@@ -243,6 +294,9 @@ html, body {
 /* ---------- Mobile ---------- */
 @media (max-width: 767px) {
   .hamburger { display: flex; }
+
+  /* Sidebar apply hides behind hamburger; use the floating one instead */
+  #apply-fab { display: block; }
 
   #sidebar {
     position: absolute;
