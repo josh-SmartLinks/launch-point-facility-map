@@ -14,7 +14,8 @@ const FACILITIES = [
   { name: "Twisted Tee Golf",      city: "Owasso, OK",                    lat: 36.2695, lng: -95.8547 },
   { name: "O'Fallon Golf Studio",  city: "O'Fallon, IL",                  lat: 38.5922, lng: -89.9110 },
   { name: "Ace & Irons",           city: "Calgary, Alberta",              lat: 51.0447, lng: -114.0719 },
-  { name: "Launch Point",          city: "Princeton, MN",                 lat: 45.5697, lng: -93.5808 }
+  { name: "Launch Point",          city: "Princeton, MN",                 lat: 45.5697, lng: -93.5808 },
+  { name: "North Bend Golf Club",  city: "North Bend, WA",                lat: 47.4917, lng: -121.7889 }
 ];
 
 // ---------- Map ----------
