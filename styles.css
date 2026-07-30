@@ -416,6 +416,9 @@ html, body {
   flex: 1 1 200px;
   padding: 14px 18px;
 }
+/* Override .doc a (blue) so the solid Apply button keeps white text */
+.doc-actions .apply-btn { color: var(--lp-white); }
+.doc-actions .apply-btn:hover { background: var(--lp-black); color: var(--lp-blue); }
 
 /* ---------- Mobile ---------- */
 @media (max-width: 767px) {
