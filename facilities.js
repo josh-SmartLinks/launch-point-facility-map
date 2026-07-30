@@ -1,7 +1,7 @@
 // Single source of truth for the tour's clubs/facilities.
 // Add a club here (name, city, lat, lng) and it updates the map, the sidebar
 // list, the header count, AND the "N clubs" line on the proposal page.
-const FACILITIES = [
+var FACILITIES = [
   { name: "The Proper Hack",       city: "Lewis Center, OH",              lat: 40.1965, lng: -83.0088 },
   { name: "Chessie's Golf Club",   city: "Millersville, MD",              lat: 39.0640, lng: -76.6330 },
   { name: "Play Hoboken",          city: "Hoboken, NJ",                   lat: 40.7440, lng: -74.0324 },
