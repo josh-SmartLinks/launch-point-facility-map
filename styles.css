@@ -414,6 +414,9 @@ html, body {
   border: 1px solid var(--lp-blue);
   padding: 16px 18px;
 }
+.doc .intro-callout { margin-bottom: 24px; }
+.doc .intro-callout p { font-size: 16px; margin: 0 0 10px; }
+.doc .intro-callout p:last-child { margin-bottom: 0; }
 .doc .callout h2 { border-bottom: none; padding-bottom: 4px; margin-bottom: 6px; }
 
 .doc .meeting h2 { color: var(--lp-blue); }
