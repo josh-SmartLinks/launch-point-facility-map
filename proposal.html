@@ -41,7 +41,7 @@
     <h1 class="doc-title">LaunchPoint Global Tour: Initial Proposal</h1>
 
     <section class="callout intro-callout">
-      <p><strong>16 clubs have expressed interest in the Global Tour.</strong></p>
+      <p><strong><span id="club-count">17</span> clubs have expressed interest in the Global Tour.</strong></p>
       <p><strong>100% transparency on cost.</strong> Software fees come directly from SGT or Trackman and are published in full. I take nothing.</p>
       <p><strong>Prize pool is player funded</strong>, so the more players, the bigger the pot.</p>
     </section>
@@ -56,10 +56,9 @@
     <section>
       <h2>Format</h2>
       <ul>
-        <li>Each club selects the courses they want to play, including local courses near them</li>
+        <li>Each club gets to pick their favorite course to play, including local courses near them. If there are more clubs than weeks in the tour, we&rsquo;ll run a popularity vote to narrow the list.</li>
         <li>Selections are compiled into a schedule and agreed upon by all clubs before the season starts</li>
         <li>One course per week</li>
-        <li>Each club gets to pick their favorite course to play. If there are more clubs than weeks in the tour, we&rsquo;ll run a popularity vote to narrow the list.</li>
         <li>GS Pro on one side, Trackman on the other</li>
       </ul>
     </section>
@@ -158,6 +157,17 @@
       <a class="btn-outline display" href="/">VIEW FACILITY MAP</a>
     </div>
   </main>
+
+  <!-- Live club count from the shared facilities list -->
+  <script src="facilities.js"></script>
+  <script>
+    (function () {
+      var el = document.getElementById("club-count");
+      if (el && typeof FACILITIES !== "undefined" && Array.isArray(FACILITIES)) {
+        el.textContent = String(FACILITIES.length);
+      }
+    })();
+  </script>
 
   <!-- Vercel Web Analytics (static-site integration; equivalent of @vercel/analytics) -->
   <script defer src="/_vercel/insights/script.js"></script>
