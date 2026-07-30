@@ -41,7 +41,7 @@
     <h1 class="doc-title">LaunchPoint Global Tour: Initial Proposal</h1>
 
     <section class="callout intro-callout">
-      <p><strong><span id="club-count">21</span> clubs have expressed interest in the Global Tour.</strong></p>
+      <p><strong><span id="club-count">22</span> facilities have expressed interest in the Global Tour.</strong></p>
       <p><strong>100% transparency on cost.</strong> Software fees come directly from SGT or Trackman and are published in full. I take nothing.</p>
       <p><strong>Prize pool is player funded</strong>, so the more players, the bigger the pot.</p>
     </section>
@@ -164,10 +164,7 @@
     (function () {
       var el = document.getElementById("club-count");
       if (el && typeof FACILITIES !== "undefined" && Array.isArray(FACILITIES)) {
-        // Distinct clubs, not locations — a club with two venues counts once.
-        var names = {};
-        FACILITIES.forEach(function (f) { names[f.name] = true; });
-        el.textContent = String(Object.keys(names).length);
+        el.textContent = String(FACILITIES.length);
       }
     })();
   </script>
