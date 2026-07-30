@@ -26,6 +26,20 @@ html, body {
   letter-spacing: 0.01em;
 }
 
+/* Screen-reader-only (SEO/a11y h1 without altering the visual layout) */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 /* ---------- Header ---------- */
 #header {
   position: absolute;

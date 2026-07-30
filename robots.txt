@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://josh-smartlinks.github.io/launch-point-facility-map/sitemap.xml
