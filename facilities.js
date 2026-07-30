@@ -18,5 +18,10 @@ var FACILITIES = [
   { name: "O'Fallon Golf Studio",  city: "O'Fallon, IL",                  lat: 38.5922, lng: -89.9110 },
   { name: "Ace & Irons",           city: "Calgary, Alberta",              lat: 51.0447, lng: -114.0719 },
   { name: "Launch Point",          city: "Princeton, MN",                 lat: 45.5697, lng: -93.5808 },
-  { name: "North Bend Golf Club",  city: "North Bend, WA",                lat: 47.4917, lng: -121.7889 }
+  { name: "North Bend Golf Club",  city: "North Bend, WA",                lat: 47.4917, lng: -121.7889 },
+  { name: "The Digital Green",     city: "Roselle, IL",                   lat: 41.9847, lng: -88.0798 },
+  { name: "Birdie Central",        city: "Houston, TX",                   lat: 29.7604, lng: -95.3698 },
+  { name: "Birdie Bar",            city: "Waltham, MA",                   lat: 42.3765, lng: -71.2356 },
+  { name: "Birdie Bar",            city: "Burlington, MA",                lat: 42.5048, lng: -71.1956 },
+  { name: "Upstate Tee House",     city: "Easley, SC",                    lat: 34.8298, lng: -82.6015 }
 ];
