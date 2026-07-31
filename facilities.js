@@ -25,5 +25,7 @@ var FACILITIES = [
   { name: "Birdie Bar",            city: "Burlington, MA",                lat: 42.5048, lng: -71.1956 },
   { name: "Upstate Tee House",     city: "Easley, SC",                    lat: 34.8298, lng: -82.6015 },
   { name: "Indoor Golf RVA",       city: "Richmond, VA (Scott's Addition)", lat: 37.5714, lng: -77.4814 },
-  { name: "Indoor Golf RVA",       city: "Richmond, VA (Rocketts Landing)", lat: 37.5202, lng: -77.4159 }
+  { name: "Indoor Golf RVA",       city: "Richmond, VA (Rocketts Landing)", lat: 37.5202, lng: -77.4159 },
+  { name: "Condor Club 24/7 Golf Lounge", city: "Normal, IL",             lat: 40.5093, lng: -88.9844 },
+  { name: "Lumberjacks Indoor Golf", city: "Bellingham, WA",              lat: 48.7544, lng: -122.4788 }
 ];

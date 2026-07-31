@@ -25,9 +25,18 @@ const pinIcon = L.divIcon({
   popupAnchor: [0, -8]
 });
 
+// Phones show the whole country in a narrow viewport, so a fixed 50px radius
+// swallowed most pins into clusters. Tighten the radius on small screens (and
+// when zoomed out anywhere) so individual dots stay visible.
+function clusterRadius(zoom) {
+  const narrow = window.matchMedia("(max-width: 767px)").matches;
+  if (narrow) return zoom <= 5 ? 18 : 26;
+  return zoom <= 5 ? 32 : 50;
+}
+
 const cluster = L.markerClusterGroup({
   showCoverageOnHover: false,
-  maxClusterRadius: 50,
+  maxClusterRadius: clusterRadius,
   iconCreateFunction: function (c) {
     const count = c.getChildCount();
     const size = count < 10 ? 34 : count < 50 ? 42 : 50;
@@ -179,6 +188,17 @@ function closeSidebar() {
 toggle.addEventListener("click", () => {
   if (sidebar.classList.contains("open")) closeSidebar();
   else openSidebar();
+});
+
+// Rotating a phone crosses the breakpoint, so rebuild the clusters to pick up
+// the new radius (clustering is only recalculated when layers are re-added).
+const narrowQuery = window.matchMedia("(max-width: 767px)");
+let wasNarrow = narrowQuery.matches;
+window.addEventListener("resize", () => {
+  if (narrowQuery.matches !== wasNarrow) {
+    wasNarrow = narrowQuery.matches;
+    applyFilter();
+  }
 });
 
 // ---------- Init ----------
