@@ -23,5 +23,7 @@ var FACILITIES = [
   { name: "Birdie Central",        city: "Houston, TX",                   lat: 29.7604, lng: -95.3698 },
   { name: "Birdie Bar",            city: "Waltham, MA",                   lat: 42.3765, lng: -71.2356 },
   { name: "Birdie Bar",            city: "Burlington, MA",                lat: 42.5048, lng: -71.1956 },
-  { name: "Upstate Tee House",     city: "Easley, SC",                    lat: 34.8298, lng: -82.6015 }
+  { name: "Upstate Tee House",     city: "Easley, SC",                    lat: 34.8298, lng: -82.6015 },
+  { name: "Indoor Golf RVA",       city: "Richmond, VA (Scott's Addition)", lat: 37.5714, lng: -77.4814 },
+  { name: "Indoor Golf RVA",       city: "Richmond, VA (Rocketts Landing)", lat: 37.5202, lng: -77.4159 }
 ];
