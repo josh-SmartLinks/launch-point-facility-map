@@ -27,5 +27,6 @@ var FACILITIES = [
   { name: "Indoor Golf RVA",       city: "Richmond, VA (Scott's Addition)", lat: 37.5714, lng: -77.4814 },
   { name: "Indoor Golf RVA",       city: "Richmond, VA (Rocketts Landing)", lat: 37.5202, lng: -77.4159 },
   { name: "Condor Club 24/7 Golf Lounge", city: "Normal, IL",             lat: 40.5093, lng: -88.9844 },
-  { name: "Lumberjacks Indoor Golf", city: "Bellingham, WA",              lat: 48.7544, lng: -122.4788 }
+  { name: "Lumberjacks Indoor Golf", city: "Bellingham, WA",              lat: 48.7544, lng: -122.4788 },
+  { name: "Tee 2 Green Indoor Golf", city: "Blowing Rock, NC",            lat: 36.1350, lng: -81.6778 }
 ];
