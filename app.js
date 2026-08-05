@@ -69,7 +69,8 @@ function popupHtml(f) {
   return (
     '<div class="popup-name">' + escapeHtml(f.name) + "</div>" +
     '<div class="popup-city">' + escapeHtml(f.city) + "</div>" +
-    (platforms ? '<div class="popup-platform">' + escapeHtml(platforms) + "</div>" : "")
+    (platforms ? '<div class="popup-platform">' + escapeHtml(platforms) + "</div>" : "") +
+    (f.sim ? '<div class="popup-sim">' + escapeHtml(f.sim) + "</div>" : "")
   );
 }
 

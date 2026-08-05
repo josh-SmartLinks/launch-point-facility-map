@@ -356,6 +356,12 @@ html, body {
   text-transform: uppercase;
   color: var(--lp-blue);
 }
+.popup-sim {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--lp-white);
+  opacity: 0.7;
+}
 
 /* ---------- Attribution (kept legible, blue links) ---------- */
 .leaflet-control-attribution {
