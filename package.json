@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "description": "Launch Point Global Tour facility map, proposal, and signup",
   "scripts": {
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "build": "prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",
