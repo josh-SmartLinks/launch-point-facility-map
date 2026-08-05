@@ -36,11 +36,74 @@
     <!-- Shown while /api/config is checked. -->
     <p id="signup-loading" class="doc-note">Checking signup status&hellip;</p>
 
+    <!-- Path chooser. Club signup is free and always available; player signup
+         only appears once Stripe is configured. -->
+    <section id="signup-choose" hidden>
+      <p class="lead">Two ways in. Pick the one that fits.</p>
+
+      <div class="path-cards">
+        <a class="path-card" href="?type=club">
+          <span class="path-kicker">Clubs</span>
+          <span class="path-name">Add your facility</span>
+          <span class="path-price">Free</span>
+          <span class="path-note">
+            No cost to join the tour as a facility. Your club appears on the map and your players
+            can register.
+          </span>
+        </a>
+
+        <a class="path-card" id="player-path-card" href="?type=player">
+          <span class="path-kicker">Players</span>
+          <span class="path-name">Enter a tour</span>
+          <span class="path-price" id="player-path-price">$50&ndash;$60 per tour</span>
+          <span class="path-note">
+            Pick your club and tour, then pay your buy-in. Your club pairs you into a two-man team.
+          </span>
+        </a>
+      </div>
+
+      <p class="field-hint">
+        Bay time, and any registration fee your club charges for it, is set and collected by that
+        club. It is separate from the tour buy-in and is never collected here.
+      </p>
+    </section>
+
+    <!-- Club path: free, no payment involved. -->
+    <section id="club-panel" hidden>
+      <section class="callout">
+        <h2>Club signup is free</h2>
+        <p>
+          There is no fee for a facility to join the tour. You are not charged anything, at any
+          point, for listing your club or fielding players.
+        </p>
+      </section>
+
+      <p>
+        Send your facility details through the club application and you will be added to the
+        facility map and the club roster. What to have ready: facility name, contact name, email,
+        phone, city and state, your platform (SGT/GSPro or Trackman), and bay count.
+      </p>
+
+      <p class="field-hint">
+        Whatever you charge your own players for bay time or as a club registration fee is entirely
+        up to you. That money goes to your club directly and never passes through the tour.
+      </p>
+
+      <div class="doc-actions">
+        <a class="apply-btn display" href="https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=047wx5o2pE2cogL4RD3nD5hcF4Ws8uNIs7ABgUGnWiJUQ0FYNTdOS1MySjA4S09MU0FQOEZYVVBXVy4u" target="_blank" rel="noopener noreferrer">CLUB APPLICATION</a>
+        <a class="btn-outline display" href="/signup.html">BACK</a>
+      </div>
+    </section>
+
     <!-- Shown when Stripe is not configured on this deployment. -->
     <section id="signup-closed" class="callout" hidden>
-      <h2>Signup opens soon</h2>
+      <h2>Player signup opens soon</h2>
       <p>
-        Registration is not open yet. The tour schedule, pricing, and format are all in the
+        Player registration is not open yet. Clubs can still
+        <a href="?type=club">add their facility</a> for free in the meantime.
+      </p>
+      <p>
+        The tour schedule, pricing, and format are all in the
         <a href="/proposal.html">proposal</a>.
       </p>
       <p>Questions: <a href="mailto:Josh@launchpointsim.com">Josh@launchpointsim.com</a></p>
@@ -53,6 +116,10 @@
         Payment received. A receipt is on its way to the email you entered. Your club handles
         pairing you into a two-man team before the tour starts.
       </p>
+      <p>
+        If your club charges for bay time or a club registration fee, that is paid to the club
+        directly &mdash; it is not part of this buy-in.
+      </p>
       <p><a href="/">View the facility map</a></p>
     </section>
 
@@ -64,6 +131,11 @@
       <p class="lead">
         Buy-in is per player. Your club pairs you into a two-man team. The card processing fee is
         added on top so the full buy-in goes to the pot.
+      </p>
+
+      <p class="doc-note">
+        This buy-in covers your tour entry only. If your club charges for bay time or a club
+        registration fee, you pay that to your club directly &mdash; it is not collected here.
       </p>
 
       <section class="form-section">
@@ -125,7 +197,7 @@
 
       <div class="doc-actions">
         <button type="submit" class="apply-btn display" id="submit-btn">CONTINUE TO PAYMENT</button>
-        <a class="btn-outline display" href="/proposal.html">READ THE PROPOSAL</a>
+        <a class="btn-outline display" href="/signup.html">BACK</a>
       </div>
     </form>
   </main>
@@ -283,22 +355,54 @@
       });
 
       // ---------- Boot ----------
-      var status = new URLSearchParams(window.location.search).get("status");
+      var params = new URLSearchParams(window.location.search);
+      var status = params.get("status");
+      var type = params.get("type");
+      var chooseEl = document.getElementById("signup-choose");
+      var clubPanelEl = document.getElementById("club-panel");
+
+      // Club signup is free and does not touch Stripe, so it renders without
+      // waiting on the config check.
+      if (type === "club") {
+        hide(loadingEl);
+        show(clubPanelEl);
+        return;
+      }
 
       fetch("/api/config")
         .then(function (r) { return r.json(); })
         .then(function (cfg) {
           hide(loadingEl);
 
+          // A finished checkout lands back here regardless of chosen path.
+          if (status === "success" && cfg.enabled) {
+            show(successEl);
+            return;
+          }
+
           if (!cfg.enabled) {
-            show(closedEl);
+            // Player signup is closed, but clubs can still join for free.
+            if (type === "player") {
+              show(closedEl);
+            } else {
+              document.getElementById("player-path-price").textContent = "Opens soon";
+              document.getElementById("player-path-card").classList.add("path-card-disabled");
+              document.getElementById("player-path-card").setAttribute("href", "?type=player");
+              show(chooseEl);
+            }
             return;
           }
 
           pricing = cfg.pricing;
 
-          if (status === "success") {
-            show(successEl);
+          if (type !== "player") {
+            // Quote the real range from the server prices.
+            var singles = pricing.tours.filter(function (t) { return t.tour !== "bundle"; });
+            var lo = Math.min.apply(null, singles.map(function (t) { return t.buyIn; }));
+            var hi = Math.max.apply(null, singles.map(function (t) { return t.buyIn; }));
+            document.getElementById("player-path-price").textContent =
+              money(lo) + "–" + money(hi) + " per tour";
+            show(chooseEl);
             return;
           }
 
