@@ -9,6 +9,19 @@
 
 const { TOUR_LABELS, PLATFORM_LABELS, quote } = require("../lib/pricing");
 const { getDb } = require("../lib/db");
+const FACILITIES = require("../facilities");
+
+const OTHER_CLUB = "Other / not listed";
+
+// Clubs are validated against the real list so the field cannot be used to
+// write arbitrary text into Stripe records and the roster.
+const VALID_CLUBS = FACILITIES.reduce(
+  (acc, f) => {
+    acc[f.name] = true;
+    return acc;
+  },
+  { [OTHER_CLUB]: true }
+);
 
 const STRIPE_API = "https://api.stripe.com/v1";
 
@@ -56,7 +69,7 @@ module.exports = async (req, res) => {
   if (!PLATFORM_LABELS[platform]) {
     return res.status(400).json({ error: "Pick a platform." });
   }
-  if (!club) {
+  if (!VALID_CLUBS[club]) {
     return res.status(400).json({ error: "Pick your club." });
   }
   if (!isEmail(email)) {
@@ -71,9 +84,11 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: "Enter a phone number we can reach you at." });
   }
 
-  const origin =
-    req.headers.origin ||
-    "https://" + (req.headers["x-forwarded-host"] || req.headers.host || "www.launchpointglobaltour.com");
+  // Never build the redirect from a caller-supplied header. A request with
+  // Origin: https://evil.com would otherwise produce a real Stripe Checkout
+  // page on this account that hands the payer off to someone else's site
+  // afterwards. Only these hosts are allowed.
+  const origin = allowedOrigin(req);
 
   const entryLabel =
     TOUR_LABELS[tour] + " — " + PLATFORM_LABELS[platform] + " — one player";
@@ -164,4 +179,20 @@ function safeParse(s) {
   } catch (e) {
     return {};
   }
+}
+
+// The canonical site, plus whatever Vercel deployment URL this is running on
+// (so preview deployments can be tested), and nothing else.
+const CANONICAL_ORIGIN = "https://www.launchpointglobaltour.com";
+
+function allowedOrigin(req) {
+  const candidates = [CANONICAL_ORIGIN];
+
+  const vercelUrl = process.env.VERCEL_URL;
+  if (vercelUrl) candidates.push("https://" + vercelUrl);
+
+  const sent = clean(req.headers.origin, 200);
+  if (sent && candidates.indexOf(sent) !== -1) return sent;
+
+  return CANONICAL_ORIGIN;
 }

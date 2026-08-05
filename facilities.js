@@ -46,3 +46,9 @@ var FACILITIES = [
   { name: "The Birdie Collective", city: "St. Charles, IL",               lat: 41.9140, lng: -88.3128,   sim: "Uneekor Eye XO",         platforms: ["sgt"] },
   { name: "Caddies Sports Club",   city: "Jackson, TN",                   lat: 35.6144, lng: -88.8177,   sim: "Uneekor EyeXO",          platforms: ["sgt"] }
 ];
+
+// The browser gets the global above; the API routes require() this file so
+// club names are validated server-side against the same one list.
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = FACILITIES;
+}
