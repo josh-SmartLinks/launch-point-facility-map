@@ -55,7 +55,7 @@
         <a class="path-card" id="player-path-card" href="?type=player">
           <span class="path-kicker">Players</span>
           <span class="path-name">Enter a tour</span>
-          <span class="path-price" id="player-path-price">$50&ndash;$60 per tour</span>
+          <span class="path-price" id="player-path-price">$60 per tour</span>
           <span class="path-note">
             Pick your club and tour, then pay your buy-in. Your club pairs you into a two-man team.
           </span>
@@ -610,8 +610,9 @@
             var singles = pricing.tours.filter(function (t) { return t.tour !== "bundle"; });
             var lo = Math.min.apply(null, singles.map(function (t) { return t.buyIn; }));
             var hi = Math.max.apply(null, singles.map(function (t) { return t.buyIn; }));
+            // Every tour costs the same right now, so don't print "$60–$60".
             document.getElementById("player-path-price").textContent =
-              money(lo) + "–" + money(hi) + " per tour";
+              (lo === hi ? money(lo) : money(lo) + " to " + money(hi)) + " per tour";
             show(chooseEl);
             return;
           }
