@@ -45,6 +45,7 @@ module.exports = async (req, res) => {
   const platform = clean(body.platform, 20).toLowerCase();
   const club = clean(body.club, 120);
   const email = clean(body.email, 200);
+  const phone = clean(body.phone, 30);
   const playerName = clean(body.playerName, 80);
 
   const priced = quote(tour);
@@ -62,6 +63,11 @@ module.exports = async (req, res) => {
   }
   if (!playerName) {
     return res.status(400).json({ error: "Enter the player's name." });
+  }
+  // Loose on formatting, strict on being reachable: enough digits to be a
+  // real number.
+  if ((phone.match(/\d/g) || []).length < 10) {
+    return res.status(400).json({ error: "Enter a phone number we can reach you at." });
   }
 
   const origin =
@@ -94,6 +100,7 @@ module.exports = async (req, res) => {
     "metadata[platform]": platform,
     "metadata[tour]": tour,
     "metadata[player]": playerName,
+    "metadata[phone]": phone,
     "metadata[buy_in_cents]": String(priced.buyIn),
     "metadata[fee_cents]": String(priced.fee)
   };

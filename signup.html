@@ -171,8 +171,13 @@
           <span class="field-label">Email for the receipt</span>
           <input id="email" type="email" autocomplete="email" required maxlength="200" />
         </label>
+        <label class="field">
+          <span class="field-label">Phone</span>
+          <input id="phone" type="tel" autocomplete="tel" required maxlength="30" placeholder="555-555-5555" />
+        </label>
         <p class="field-hint">
-          One entry per player. Pairing players into two-man teams is handled by your club.
+          One entry per player. Pairing players into two-man teams is handled by your club. Your
+          phone is only used to reach you about the tour.
         </p>
       </section>
 
@@ -391,6 +396,7 @@
           platform: document.getElementById("platform").value,
           tour: selectedTour,
           email: document.getElementById("email").value,
+          phone: document.getElementById("phone").value,
           playerName: document.getElementById("player").value
         };
 
