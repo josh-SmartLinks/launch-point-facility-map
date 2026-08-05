@@ -273,12 +273,16 @@
         other.textContent = "Other / not listed";
         select.appendChild(other);
 
+        // Arriving from a pin or list row on the map: ?club=<name>.
+        var fromMap = params.get("club");
+        if (fromMap && seen[fromMap]) select.value = fromMap;
+
         select.addEventListener("change", syncPlatform);
         syncPlatform();
       }
 
-      // The club decides the platform. One tagged platform locks it; a club on
-      // both, or one we have no data for, falls back to the picker.
+      // The club decides the platform, so there is nothing to ask unless the
+      // club runs both — or we have no technology on file for it.
       function syncPlatform() {
         var club = document.getElementById("club").value;
         var fieldEl = document.getElementById("platform-field");
@@ -287,16 +291,26 @@
         var selectEl = document.getElementById("platform");
         var tags = clubPlatforms[club] || [];
 
+        // Nothing picked yet — say nothing about platform.
+        if (!club) {
+          selectEl.value = "";
+          hide(fieldEl);
+          hide(lockedEl);
+          hide(hintEl);
+          return;
+        }
+
         if (tags.length === 1) {
           selectEl.value = tags[0];
-          lockedEl.textContent = "Platform: " + (PLATFORM_NAMES[tags[0]] || tags[0]) +
-            " — set by your club.";
+          lockedEl.textContent =
+            "You'll compete in the " + (PLATFORM_NAMES[tags[0]] || tags[0]) + " tour.";
           show(lockedEl);
           hide(fieldEl);
           hide(hintEl);
           return;
         }
 
+        selectEl.value = "";
         hide(lockedEl);
         show(fieldEl);
         show(hintEl);
@@ -310,7 +324,7 @@
         } else {
           Array.prototype.forEach.call(selectEl.options, function (opt) { opt.hidden = false; });
           hintEl.textContent =
-            "SGT and Trackman run as two separate tours with separate pots. Pick the one your club competes on.";
+            "We don't have this club's technology on file. Pick the tour you compete in.";
         }
       }
 

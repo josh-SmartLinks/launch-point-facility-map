@@ -70,7 +70,10 @@ function popupHtml(f) {
     '<div class="popup-name">' + escapeHtml(f.name) + "</div>" +
     '<div class="popup-city">' + escapeHtml(f.city) + "</div>" +
     (platforms ? '<div class="popup-platform">' + escapeHtml(platforms) + "</div>" : "") +
-    (f.sim ? '<div class="popup-sim">' + escapeHtml(f.sim) + "</div>" : "")
+    (f.sim ? '<div class="popup-sim">' + escapeHtml(f.sim) + "</div>" : "") +
+    // Straight into signup with this club already chosen.
+    '<a class="popup-signup display" href="/signup.html?type=player&club=' +
+      encodeURIComponent(f.name) + '">SIGN UP HERE</a>'
   );
 }
 

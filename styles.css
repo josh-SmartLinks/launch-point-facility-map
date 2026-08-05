@@ -362,6 +362,18 @@ html, body {
   color: var(--lp-white);
   opacity: 0.7;
 }
+.popup-signup {
+  display: block;
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: var(--lp-blue);
+  color: var(--lp-white) !important;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-decoration: none;
+}
+.popup-signup:hover { background: var(--lp-white); color: var(--lp-blue) !important; }
 
 /* ---------- Attribution (kept legible, blue links) ---------- */
 .leaflet-control-attribution {
