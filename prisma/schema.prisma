@@ -1,0 +1,60 @@
+// Signup records for the Launch Point Global Tour.
+//
+// DATABASE_URL is the pooled connection the serverless functions use.
+// DIRECT_URL is the unpooled one, needed only for migrations.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Signup {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Written when checkout starts, updated when Stripe confirms payment.
+  stripeSessionId String  @unique
+  paymentIntentId String?
+  status          String  @default("pending") // pending | paid | expired
+
+  club     String
+  platform String // sgt | trackman
+  tour     String // fall | winter | spring | bundle
+
+  playerName String
+  email      String
+  phone      String
+
+  // Split is stored so the pot and the card fee stay separable later.
+  buyInCents Int
+  feeCents   Int
+  totalCents Int
+
+  paidAt DateTime?
+
+  @@index([tour, platform])
+  @@index([club])
+  @@index([status])
+}
+
+// Clubs joining the tour. Free, no payment involved.
+model ClubApplication {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  facility    String
+  contactName String
+  email       String
+  phone       String
+  city        String
+  platform    String? // sgt | trackman, once known
+  sim         String? // launch monitor, e.g. "Trackman iO"
+  bays        Int?
+  notes       String?
+}

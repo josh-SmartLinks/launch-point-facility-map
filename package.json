@@ -1,0 +1,16 @@
+{
+  "name": "launch-point-facility-map",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Launch Point Global Tour facility map, proposal, and signup",
+  "scripts": {
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.1.0",
+    "stripe": "^17.5.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.1.0"
+  }
+}

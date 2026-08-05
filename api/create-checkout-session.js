@@ -8,6 +8,7 @@
 // the full buy-in reaches the prize pot and the payer covers Stripe's cut.
 
 const { TOUR_LABELS, PLATFORM_LABELS, quote } = require("../lib/pricing");
+const { getDb } = require("../lib/db");
 
 const STRIPE_API = "https://api.stripe.com/v1";
 
@@ -120,6 +121,34 @@ module.exports = async (req, res) => {
     if (!r.ok) {
       console.error("Stripe error:", data && data.error);
       return res.status(502).json({ error: "Could not start checkout. Try again." });
+    }
+
+    // Record the attempt as pending. The webhook flips it to paid, so an
+    // abandoned checkout stays visible as a lead rather than vanishing.
+    // A logging failure must never block a payment, hence the catch.
+    const db = getDb();
+    if (db) {
+      try {
+        await db.signup.upsert({
+          where: { stripeSessionId: data.id },
+          create: {
+            stripeSessionId: data.id,
+            status: "pending",
+            club,
+            platform,
+            tour,
+            playerName,
+            email,
+            phone,
+            buyInCents: priced.buyIn,
+            feeCents: priced.fee,
+            totalCents: priced.total
+          },
+          update: {}
+        });
+      } catch (dbErr) {
+        console.error("Could not record signup:", dbErr && dbErr.message);
+      }
     }
 
     return res.status(200).json({ url: data.url });
