@@ -29,5 +29,7 @@ var FACILITIES = [
   { name: "Condor Club 24/7 Golf Lounge", city: "Normal, IL",             lat: 40.5093, lng: -88.9844 },
   { name: "Lumberjacks Indoor Golf", city: "Bellingham, WA",              lat: 48.7544, lng: -122.4788 },
   { name: "Tee 2 Green Indoor Golf", city: "Blowing Rock, NC",            lat: 36.1350, lng: -81.6778 },
-  { name: "Desert Links Indoor Golf", city: "Phoenix, AZ",                lat: 33.4484, lng: -112.0741 }
+  { name: "Desert Links Indoor Golf", city: "Phoenix, AZ",                lat: 33.4484, lng: -112.0741 },
+  { name: "The Birdie Collective", city: "St. Charles, IL",               lat: 41.9140, lng: -88.3128 },
+  { name: "Caddies Sports Club",   city: "Jackson, TN",                   lat: 35.6144, lng: -88.8177 }
 ];
