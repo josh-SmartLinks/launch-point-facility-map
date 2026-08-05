@@ -49,9 +49,11 @@ const cluster = L.markerClusterGroup({
 });
 
 // ---------- Build markers + sidebar ----------
-const entries = FACILITIES
-  .map((f, i) => ({ ...f, i }))
-  .sort((a, b) => a.name.localeCompare(b.name));
+// FACILITIES (facilities.js) is the committed list and paints immediately.
+// /api/facilities may add clubs approved in the admin page, and the map is
+// rebuilt if it returns any.
+let facilityList = FACILITIES;
+let entries = [];
 
 const markers = {};   // index -> marker
 const listItems = {}; // index -> <li>
@@ -83,11 +85,17 @@ function escapeHtml(s) {
   });
 }
 
-FACILITIES.forEach((f, i) => {
-  const m = L.marker([f.lat, f.lng], { icon: pinIcon });
-  m.bindPopup(popupHtml(f));
-  markers[i] = m;
-});
+function buildMarkers() {
+  Object.keys(markers).forEach((k) => delete markers[k]);
+  facilityList.forEach((f, i) => {
+    const m = L.marker([f.lat, f.lng], { icon: pinIcon });
+    m.bindPopup(popupHtml(f));
+    markers[i] = m;
+  });
+  entries = facilityList
+    .map((f, i) => ({ ...f, i }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
 
 // ---------- Sidebar list ----------
 const listEl = document.getElementById("facility-list");
@@ -103,7 +111,7 @@ function setActive(i) {
 }
 
 function flyToFacility(i) {
-  const f = FACILITIES[i];
+  const f = facilityList[i];
   setActive(i);
   const m = markers[i];
   map.flyTo([f.lat, f.lng], Math.max(map.getZoom(), 12), { duration: 0.6 });
@@ -180,8 +188,11 @@ function runsPlatform(f, key) {
 
 function buildPlatformFilter() {
   const wrap = document.getElementById("platform-filter");
-  const anyTagged = FACILITIES.some((f) => Array.isArray(f.platforms) && f.platforms.length);
+  const anyTagged = facilityList.some((f) => Array.isArray(f.platforms) && f.platforms.length);
   if (!wrap || !anyTagged) return;
+
+  // Safe to call again after approved clubs arrive.
+  wrap.innerHTML = "";
 
   PLATFORM_FILTERS.forEach((p) => {
     const btn = document.createElement("button");
@@ -260,9 +271,31 @@ window.addEventListener("resize", () => {
 });
 
 // ---------- Init ----------
-map.addLayer(cluster);
-buildPlatformFilter();
-applyFilter();
+function render(fitBounds) {
+  buildMarkers();
+  buildPlatformFilter();
+  applyFilter();
 
-const allBounds = L.latLngBounds(FACILITIES.map((f) => [f.lat, f.lng]));
-map.fitBounds(allBounds, { padding: [60, 60] });
+  if (fitBounds && facilityList.length) {
+    map.fitBounds(L.latLngBounds(facilityList.map((f) => [f.lat, f.lng])), {
+      padding: [60, 60]
+    });
+  }
+}
+
+map.addLayer(cluster);
+render(true);
+
+// Pull in clubs approved through the admin page. The committed list is already
+// on screen, so a failure here changes nothing.
+fetch("/api/facilities")
+  .then((r) => (r.ok ? r.json() : null))
+  .then((data) => {
+    if (!data || !Array.isArray(data.facilities)) return;
+    if (data.facilities.length === facilityList.length) return;
+
+    facilityList = data.facilities;
+    // Keep the current view; refitting would yank the map after first paint.
+    render(false);
+  })
+  .catch(() => {});

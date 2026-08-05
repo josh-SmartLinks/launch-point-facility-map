@@ -60,6 +60,15 @@ model ClubApplication {
   // Derived once we know it, so a club can be matched to the right series.
   platform String? // sgt | trackman
 
+  // Approval publishes the club to the map. Coordinates are geocoded from
+  // `city` at approval time and can be corrected by hand in the admin page.
+  approved   Boolean   @default(false)
+  approvedAt DateTime?
+  mapName    String? // overrides `facility` on the map when set
+  lat        Float?
+  lng        Float?
+
   @@index([interest])
   @@index([createdAt])
+  @@index([approved])
 }

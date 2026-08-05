@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin: Launch Point Global Tour</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#000000" />
+
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="doc-body">
+  <header id="header">
+    <div class="header-left">
+      <a href="/" aria-label="Back to facility map">
+        <img id="logo" src="assets/logo.png" alt="Launch Point Global Tour" />
+      </a>
+    </div>
+    <a class="header-link display" href="#" id="signout" hidden>SIGN OUT</a>
+  </header>
+
+  <main class="doc doc-wide">
+    <h1 class="doc-title">Admin</h1>
+
+    <p id="admin-loading" class="doc-note">Checking session&hellip;</p>
+
+    <!-- Sign in -->
+    <form id="login-form" hidden>
+      <section class="form-section">
+        <label class="field">
+          <span class="field-label">Admin password</span>
+          <input id="password" type="password" autocomplete="current-password" required />
+        </label>
+        <p id="login-error" class="form-error" hidden></p>
+      </section>
+      <div class="doc-actions">
+        <button type="submit" class="apply-btn display" id="login-btn">SIGN IN</button>
+      </div>
+    </form>
+
+    <!-- Dashboard -->
+    <div id="dashboard" hidden>
+      <div class="stat-row" id="stats"></div>
+
+      <div class="admin-tabs">
+        <button type="button" class="platform-chip active" data-tab="clubs">CLUB SUBMISSIONS</button>
+        <button type="button" class="platform-chip" data-tab="signups">PLAYER SIGNUPS</button>
+      </div>
+
+      <p id="admin-error" class="form-error" hidden></p>
+
+      <section id="tab-clubs">
+        <div class="table-wrap">
+          <table id="clubs-table">
+            <thead>
+              <tr>
+                <th>Facility</th>
+                <th>Contact</th>
+                <th>Location</th>
+                <th>Launch monitor</th>
+                <th>Interest</th>
+                <th>On map</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tab-signups" hidden>
+        <div class="table-wrap">
+          <table id="signups-table">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Club</th>
+                <th>Tour</th>
+                <th>Platform</th>
+                <th>Contact</th>
+                <th>Status</th>
+                <th>Paid</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var loadingEl = document.getElementById("admin-loading");
+      var loginForm = document.getElementById("login-form");
+      var loginError = document.getElementById("login-error");
+      var dashEl = document.getElementById("dashboard");
+      var errEl = document.getElementById("admin-error");
+      var signoutEl = document.getElementById("signout");
+
+      function show(el) { el.hidden = false; }
+      function hide(el) { el.hidden = true; }
+      function money(c) { return "$" + (Number(c || 0) / 100).toFixed(2); }
+
+      var PLATFORMS = { sgt: "SGT / GSPro", trackman: "Trackman" };
+      var INTEREST = { yes: "Yes", maybe: "Maybe", not_now: "Not now" };
+
+      function text(el, value) {
+        var td = document.createElement(el);
+        td.textContent = value == null || value === "" ? "—" : String(value);
+        return td;
+      }
+
+      function date(value) {
+        if (!value) return "";
+        var d = new Date(value);
+        return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      }
+
+      // ---------- Data ----------
+      function load() {
+        return fetch("/api/admin/submissions", { credentials: "same-origin" })
+          .then(function (r) {
+            if (r.status === 401) throw new Error("unauthenticated");
+            return r.json().then(function (d) {
+              if (!r.ok) throw new Error(d.error || "Could not load.");
+              return d;
+            });
+          });
+      }
+
+      function renderStats(t) {
+        var stats = [
+          ["Club submissions", t.clubs],
+          ["On the map", t.clubsApproved],
+          ["Paid signups", t.signupsPaid],
+          ["Pot", money(t.potCents)]
+        ];
+        var wrap = document.getElementById("stats");
+        wrap.innerHTML = "";
+        stats.forEach(function (s) {
+          var box = document.createElement("div");
+          box.className = "stat";
+          var v = document.createElement("div");
+          v.className = "stat-value";
+          v.textContent = s[1];
+          var l = document.createElement("div");
+          l.className = "stat-label";
+          l.textContent = s[0];
+          box.appendChild(v);
+          box.appendChild(l);
+          wrap.appendChild(box);
+        });
+      }
+
+      function renderClubs(clubs) {
+        var body = document.querySelector("#clubs-table tbody");
+        body.innerHTML = "";
+
+        if (!clubs.length) {
+          var empty = document.createElement("tr");
+          var td = document.createElement("td");
+          td.colSpan = 7;
+          td.textContent = "No submissions yet.";
+          empty.appendChild(td);
+          body.appendChild(empty);
+          return;
+        }
+
+        clubs.forEach(function (c) {
+          var tr = document.createElement("tr");
+
+          var name = document.createElement("td");
+          name.appendChild(document.createTextNode(c.mapName || c.facility));
+          var small = document.createElement("div");
+          small.className = "cell-sub";
+          small.textContent = date(c.createdAt);
+          name.appendChild(small);
+          tr.appendChild(name);
+
+          var contact = document.createElement("td");
+          contact.appendChild(document.createTextNode(c.contactName));
+          var sub = document.createElement("div");
+          sub.className = "cell-sub";
+          sub.textContent = c.email + " · " + c.phone;
+          contact.appendChild(sub);
+          tr.appendChild(contact);
+
+          tr.appendChild(text("td", c.city));
+          tr.appendChild(text("td", c.launchMonitor));
+          tr.appendChild(text("td", INTEREST[c.interest] || c.interest));
+
+          var mapped = document.createElement("td");
+          mapped.textContent = c.approved ? "Yes" : "No";
+          mapped.className = c.approved ? "cell-yes" : "";
+          tr.appendChild(mapped);
+
+          var actions = document.createElement("td");
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "platform-chip";
+          btn.textContent = c.approved ? "REMOVE" : "APPROVE";
+          btn.addEventListener("click", function () {
+            approve(c, !c.approved, btn);
+          });
+          actions.appendChild(btn);
+          tr.appendChild(actions);
+
+          if (c.notes) {
+            var noteRow = document.createElement("tr");
+            var noteCell = document.createElement("td");
+            noteCell.colSpan = 7;
+            noteCell.className = "cell-note";
+            noteCell.textContent = "Notes: " + c.notes;
+            noteRow.appendChild(noteCell);
+            body.appendChild(tr);
+            body.appendChild(noteRow);
+            return;
+          }
+
+          body.appendChild(tr);
+        });
+      }
+
+      function renderSignups(signups) {
+        var body = document.querySelector("#signups-table tbody");
+        body.innerHTML = "";
+
+        if (!signups.length) {
+          var empty = document.createElement("tr");
+          var td = document.createElement("td");
+          td.colSpan = 7;
+          td.textContent = "No signups yet.";
+          empty.appendChild(td);
+          body.appendChild(empty);
+          return;
+        }
+
+        signups.forEach(function (s) {
+          var tr = document.createElement("tr");
+          tr.appendChild(text("td", s.playerName));
+          tr.appendChild(text("td", s.club));
+          tr.appendChild(text("td", s.tour));
+          tr.appendChild(text("td", PLATFORMS[s.platform] || s.platform));
+
+          var contact = document.createElement("td");
+          contact.textContent = s.email;
+          var sub = document.createElement("div");
+          sub.className = "cell-sub";
+          sub.textContent = s.phone;
+          contact.appendChild(sub);
+          tr.appendChild(contact);
+
+          var status = document.createElement("td");
+          status.textContent = s.status;
+          status.className = s.status === "paid" ? "cell-yes" : "";
+          tr.appendChild(status);
+
+          tr.appendChild(text("td", s.status === "paid" ? money(s.totalCents) : ""));
+          body.appendChild(tr);
+        });
+      }
+
+      function approve(club, approved, btn) {
+        hide(errEl);
+        btn.disabled = true;
+        var original = btn.textContent;
+        btn.textContent = "…";
+
+        var payload = { id: club.id, approved: approved };
+
+        // Approving needs coordinates; the server geocodes the city, and we
+        // ask for them by hand only if that fails.
+        fetch("/api/admin/approve", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+          .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+          .then(function (res) {
+            if (res.status === 422) {
+              var lat = window.prompt(res.d.error + "\n\nLatitude:");
+              if (lat === null) throw new Error("Cancelled.");
+              var lng = window.prompt("Longitude:");
+              if (lng === null) throw new Error("Cancelled.");
+
+              return fetch("/api/admin/approve", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: club.id, approved: true, lat: lat, lng: lng })
+              }).then(function (r2) {
+                return r2.json().then(function (d2) {
+                  if (!r2.ok) throw new Error(d2.error || "Could not save.");
+                  return d2;
+                });
+              });
+            }
+            if (res.status !== 200) throw new Error(res.d.error || "Could not save.");
+            return res.d;
+          })
+          .then(function () { return refresh(); })
+          .catch(function (err) {
+            errEl.textContent = err.message;
+            show(errEl);
+            btn.disabled = false;
+            btn.textContent = original;
+          });
+      }
+
+      function refresh() {
+        return load().then(function (data) {
+          renderStats(data.totals);
+          renderClubs(data.clubs);
+          renderSignups(data.signups);
+        });
+      }
+
+      // ---------- Tabs ----------
+      document.querySelectorAll(".admin-tabs .platform-chip").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          document.querySelectorAll(".admin-tabs .platform-chip").forEach(function (b) {
+            b.classList.toggle("active", b === btn);
+          });
+          var tab = btn.getAttribute("data-tab");
+          document.getElementById("tab-clubs").hidden = tab !== "clubs";
+          document.getElementById("tab-signups").hidden = tab !== "signups";
+        });
+      });
+
+      // ---------- Auth ----------
+      loginForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        hide(loginError);
+        var btn = document.getElementById("login-btn");
+        btn.disabled = true;
+        btn.textContent = "SIGNING IN…";
+
+        fetch("/api/admin/login", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: document.getElementById("password").value })
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            if (!res.ok) throw new Error(res.d.error || "Could not sign in.");
+            hide(loginForm);
+            show(dashEl);
+            show(signoutEl);
+            return refresh();
+          })
+          .catch(function (err) {
+            loginError.textContent = err.message;
+            show(loginError);
+          })
+          .then(function () {
+            btn.disabled = false;
+            btn.textContent = "SIGN IN";
+          });
+      });
+
+      signoutEl.addEventListener("click", function (e) {
+        e.preventDefault();
+        fetch("/api/admin/login", { method: "DELETE", credentials: "same-origin" })
+          .then(function () { window.location.reload(); });
+      });
+
+      // ---------- Boot ----------
+      refresh()
+        .then(function () {
+          hide(loadingEl);
+          show(dashEl);
+          show(signoutEl);
+        })
+        .catch(function () {
+          hide(loadingEl);
+          show(loginForm);
+        });
+    })();
+  </script>
+</body>
+</html>
