@@ -213,6 +213,34 @@ html, body {
 #search::placeholder { color: var(--lp-white); opacity: 0.5; }
 #search:focus-visible { outline: 2px solid var(--lp-blue); outline-offset: 1px; }
 
+/* ---------- Platform filter ---------- */
+.platform-filter {
+  display: flex;
+  gap: 6px;
+  padding: 0 14px 14px;
+  border-bottom: 1px solid var(--lp-blue);
+}
+.platform-chip {
+  flex: 1;
+  padding: 7px 6px;
+  font-family: "Archivo Black", system-ui, sans-serif;
+  font-style: italic;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  color: var(--lp-white);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.platform-chip:hover { border-color: var(--lp-blue); }
+.platform-chip.active {
+  background: var(--lp-blue);
+  border-color: var(--lp-blue);
+  color: var(--lp-white);
+}
+.platform-chip:focus-visible { outline: 2px solid var(--lp-blue); outline-offset: 1px; }
+
 /* ---------- Facility list ---------- */
 #facility-list {
   list-style: none;
@@ -320,6 +348,13 @@ html, body {
   font-size: 13px;
   color: var(--lp-white);
   opacity: 0.8;
+}
+.popup-platform {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lp-blue);
 }
 
 /* ---------- Attribution (kept legible, blue links) ---------- */
@@ -550,6 +585,15 @@ html, body {
   font-size: 13px;
   opacity: 0.7;
   margin: 0;
+}
+
+/* Platform the club already determines — stated, not asked. */
+.field-locked {
+  font-size: 14px;
+  color: var(--lp-white);
+  border-left: 3px solid var(--lp-blue);
+  padding: 8px 12px;
+  margin: 0 0 14px;
 }
 
 .tour-options {

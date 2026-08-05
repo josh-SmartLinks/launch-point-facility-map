@@ -57,10 +57,19 @@ const markers = {};   // index -> marker
 const listItems = {}; // index -> <li>
 let activeIndex = null;
 
+const PLATFORM_NAMES = { sgt: "SGT / GSPro", trackman: "Trackman" };
+
+function platformLabel(f) {
+  if (!Array.isArray(f.platforms) || !f.platforms.length) return "";
+  return f.platforms.map((p) => PLATFORM_NAMES[p] || p).join(" · ");
+}
+
 function popupHtml(f) {
+  const platforms = platformLabel(f);
   return (
     '<div class="popup-name">' + escapeHtml(f.name) + "</div>" +
-    '<div class="popup-city">' + escapeHtml(f.city) + "</div>"
+    '<div class="popup-city">' + escapeHtml(f.city) + "</div>" +
+    (platforms ? '<div class="popup-platform">' + escapeHtml(platforms) + "</div>" : "")
   );
 }
 
@@ -150,10 +159,55 @@ function updateCount(n) {
   countEl.textContent = n + (n === 1 ? " FACILITY" : " FACILITIES");
 }
 
+// ---------- Platform filter ----------
+// Only rendered once at least one club carries a `platforms` tag, so the
+// controls never appear with nothing to filter.
+const PLATFORM_FILTERS = [
+  { key: "all", label: "ALL" },
+  { key: "sgt", label: "SGT / GSPRO" },
+  { key: "trackman", label: "TRACKMAN" }
+];
+
+let activePlatform = "all";
+
+function runsPlatform(f, key) {
+  return Array.isArray(f.platforms) && f.platforms.indexOf(key) !== -1;
+}
+
+function buildPlatformFilter() {
+  const wrap = document.getElementById("platform-filter");
+  const anyTagged = FACILITIES.some((f) => Array.isArray(f.platforms) && f.platforms.length);
+  if (!wrap || !anyTagged) return;
+
+  PLATFORM_FILTERS.forEach((p) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "platform-chip" + (p.key === activePlatform ? " active" : "");
+    btn.textContent = p.label;
+    btn.setAttribute("aria-pressed", p.key === activePlatform ? "true" : "false");
+
+    btn.addEventListener("click", () => {
+      activePlatform = p.key;
+      wrap.querySelectorAll(".platform-chip").forEach((el) => {
+        const on = el === btn;
+        el.classList.toggle("active", on);
+        el.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      applyFilter();
+    });
+
+    wrap.appendChild(btn);
+  });
+
+  wrap.hidden = false;
+}
+
 function applyFilter() {
   const q = searchEl.value.trim().toLowerCase();
   const matched = entries.filter(
-    (f) => f.name.toLowerCase().includes(q) || f.city.toLowerCase().includes(q)
+    (f) =>
+      (f.name.toLowerCase().includes(q) || f.city.toLowerCase().includes(q)) &&
+      (activePlatform === "all" || runsPlatform(f, activePlatform))
   );
 
   // Rebuild sidebar
@@ -203,6 +257,7 @@ window.addEventListener("resize", () => {
 
 // ---------- Init ----------
 map.addLayer(cluster);
+buildPlatformFilter();
 applyFilter();
 
 const allBounds = L.latLngBounds(FACILITIES.map((f) => [f.lat, f.lng]));

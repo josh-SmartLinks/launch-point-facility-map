@@ -144,17 +144,20 @@
           <span class="field-label">Club</span>
           <select id="club" required></select>
         </label>
-        <label class="field">
+        <!-- Set by the club when we know its technology; shown as a picker
+             only when the club runs both or is untagged. -->
+        <label class="field" id="platform-field" hidden>
           <span class="field-label">Platform</span>
-          <select id="platform" required>
+          <select id="platform">
             <option value="">Select&hellip;</option>
             <option value="sgt">SGT / GSPro</option>
             <option value="trackman">Trackman</option>
           </select>
         </label>
-        <p class="field-hint">
-          SGT and Trackman run as two separate tours with separate pots. Pick the one your club
-          competes on.
+        <p class="field-locked" id="platform-locked" hidden></p>
+        <p class="field-hint" id="platform-hint">
+          SGT and Trackman run as two separate tours with separate pots. Your platform is set by
+          the club you pick.
         </p>
       </section>
 
@@ -224,6 +227,9 @@
       function hide(el) { el.hidden = true; }
 
       // ---------- Club list, from the same file the map uses ----------
+      var PLATFORM_NAMES = { sgt: "SGT / GSPro", trackman: "Trackman" };
+      var clubPlatforms = {}; // club name -> ["sgt"] / ["trackman"] / both
+
       function fillClubs() {
         var select = document.getElementById("club");
         var names = [];
@@ -231,11 +237,16 @@
 
         if (typeof FACILITIES !== "undefined" && Array.isArray(FACILITIES)) {
           FACILITIES.forEach(function (f) {
-            // A club with two venues appears once in the dropdown.
+            // A club with two venues appears once in the dropdown, and its
+            // venues' platforms merge into one list.
             if (!seen[f.name]) {
               seen[f.name] = true;
               names.push(f.name);
+              clubPlatforms[f.name] = [];
             }
+            (f.platforms || []).forEach(function (p) {
+              if (clubPlatforms[f.name].indexOf(p) === -1) clubPlatforms[f.name].push(p);
+            });
           });
         }
         names.sort(function (a, b) { return a.localeCompare(b); });
@@ -249,7 +260,11 @@
         names.forEach(function (n) {
           var opt = document.createElement("option");
           opt.value = n;
-          opt.textContent = n;
+          var tags = clubPlatforms[n] || [];
+          // Show the technology right in the option so the choice is obvious.
+          opt.textContent = tags.length
+            ? n + " — " + tags.map(function (p) { return PLATFORM_NAMES[p] || p; }).join(" & ")
+            : n;
           select.appendChild(opt);
         });
 
@@ -257,6 +272,46 @@
         other.value = "Other / not listed";
         other.textContent = "Other / not listed";
         select.appendChild(other);
+
+        select.addEventListener("change", syncPlatform);
+        syncPlatform();
+      }
+
+      // The club decides the platform. One tagged platform locks it; a club on
+      // both, or one we have no data for, falls back to the picker.
+      function syncPlatform() {
+        var club = document.getElementById("club").value;
+        var fieldEl = document.getElementById("platform-field");
+        var lockedEl = document.getElementById("platform-locked");
+        var hintEl = document.getElementById("platform-hint");
+        var selectEl = document.getElementById("platform");
+        var tags = clubPlatforms[club] || [];
+
+        if (tags.length === 1) {
+          selectEl.value = tags[0];
+          lockedEl.textContent = "Platform: " + (PLATFORM_NAMES[tags[0]] || tags[0]) +
+            " — set by your club.";
+          show(lockedEl);
+          hide(fieldEl);
+          hide(hintEl);
+          return;
+        }
+
+        hide(lockedEl);
+        show(fieldEl);
+        show(hintEl);
+
+        if (tags.length > 1) {
+          // Club runs both, so let the player say which one they compete on.
+          Array.prototype.forEach.call(selectEl.options, function (opt) {
+            opt.hidden = opt.value !== "" && tags.indexOf(opt.value) === -1;
+          });
+          hintEl.textContent = "Your club runs both. Pick the one you compete on.";
+        } else {
+          Array.prototype.forEach.call(selectEl.options, function (opt) { opt.hidden = false; });
+          hintEl.textContent =
+            "SGT and Trackman run as two separate tours with separate pots. Pick the one your club competes on.";
+        }
       }
 
       // ---------- Tour choices, priced by the server ----------
@@ -325,6 +380,16 @@
           playerName: document.getElementById("player").value
         };
 
+        if (!payload.club) {
+          errorEl.textContent = "Pick your club.";
+          show(errorEl);
+          return;
+        }
+        if (!payload.platform) {
+          errorEl.textContent = "Pick a platform.";
+          show(errorEl);
+          return;
+        }
         if (!payload.tour) {
           errorEl.textContent = "Pick a tour.";
           show(errorEl);

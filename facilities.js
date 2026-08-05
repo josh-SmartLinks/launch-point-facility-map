@@ -1,6 +1,15 @@
 // Single source of truth for the tour's clubs/facilities.
 // Add a club here (name, city, lat, lng) and it updates the map, the sidebar
-// list, the header count, AND the "N clubs" line on the proposal page.
+// list, the header count, AND the "N facilities" line on the proposal page.
+//
+// Optional `platforms` says which technology the club runs:
+//   platforms: ["sgt"]              — SGT / GSPro only
+//   platforms: ["trackman"]         — Trackman only
+//   platforms: ["sgt", "trackman"]  — both
+// Tagging a club does two things: it turns on the platform filter on the map,
+// and it sets the platform automatically when a player picks that club at
+// signup. Clubs left untagged still work everywhere — they just show under
+// "All" on the map and ask the player to pick a platform themselves.
 var FACILITIES = [
   { name: "The Proper Hack",       city: "Lewis Center, OH",              lat: 40.1965, lng: -83.0088 },
   { name: "Chessie's Golf Club",   city: "Millersville, MD",              lat: 39.0640, lng: -76.6330 },
