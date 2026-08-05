@@ -5,14 +5,13 @@
 // would fail. Presence of the env var is not enough — the key is verified
 // against Stripe so a stale or revoked key also reads as "not configured".
 
-const { TOUR_LABELS, PLATFORM_LABELS, TEAM_SIZE, quote } = require("./pricing");
+const { TOUR_LABELS, PLATFORM_LABELS, quote } = require("../lib/pricing");
 
 const STRIPE_API = "https://api.stripe.com/v1";
 
 // Server-side prices, so the page never quotes a total Stripe won't charge.
 function priceTable() {
   return {
-    teamSize: TEAM_SIZE,
     platforms: PLATFORM_LABELS,
     tours: Object.keys(TOUR_LABELS).map((t) => quote(t))
   };

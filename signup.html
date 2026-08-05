@@ -50,8 +50,8 @@
     <section id="signup-success" class="callout" hidden>
       <h2>You&rsquo;re in</h2>
       <p>
-        Payment received. A receipt is on its way to the email you entered, and your club captain
-        will get the roster confirmation.
+        Payment received. A receipt is on its way to the email you entered. Your club handles
+        pairing you into a two-man team before the tour starts.
       </p>
       <p><a href="/">View the facility map</a></p>
     </section>
@@ -62,8 +62,8 @@
       </p>
 
       <p class="lead">
-        Teams are two-man. One payment covers both players, and the card processing fee is added
-        on top so the full buy-in goes to the pot.
+        Buy-in is per player. Your club pairs you into a two-man team. The card processing fee is
+        added on top so the full buy-in goes to the pot.
       </p>
 
       <section class="form-section">
@@ -87,19 +87,18 @@
       </section>
 
       <section class="form-section">
-        <h2>Your team</h2>
+        <h2>You</h2>
         <label class="field">
-          <span class="field-label">Player 1</span>
-          <input id="player1" type="text" autocomplete="name" required maxlength="80" />
-        </label>
-        <label class="field">
-          <span class="field-label">Player 2</span>
-          <input id="player2" type="text" autocomplete="off" required maxlength="80" />
+          <span class="field-label">Player name</span>
+          <input id="player" type="text" autocomplete="name" required maxlength="80" />
         </label>
         <label class="field">
           <span class="field-label">Email for the receipt</span>
           <input id="email" type="email" autocomplete="email" required maxlength="200" />
         </label>
+        <p class="field-hint">
+          One entry per player. Pairing players into two-man teams is handled by your club.
+        </p>
       </section>
 
       <section class="form-section">
@@ -109,7 +108,7 @@
 
       <section class="callout summary" id="summary" hidden>
         <div class="summary-row">
-          <span id="summary-label">Team buy-in</span>
+          <span id="summary-label">Buy-in</span>
           <span id="summary-subtotal"></span>
         </div>
         <div class="summary-row">
@@ -215,7 +214,7 @@
 
           var price = document.createElement("span");
           price.className = "tour-price";
-          price.textContent = money(t.perPlayer) + " per player · " + money(t.subtotal) + " per team";
+          price.textContent = money(t.buyIn) + " per player";
 
           text.appendChild(name);
           text.appendChild(price);
@@ -234,9 +233,8 @@
         var t = pricing.tours.filter(function (x) { return x.tour === selectedTour; })[0];
         if (!t) { hide(summaryEl); return; }
 
-        document.getElementById("summary-label").textContent =
-          t.tourLabel + " — team of " + pricing.teamSize;
-        document.getElementById("summary-subtotal").textContent = money(t.subtotal);
+        document.getElementById("summary-label").textContent = t.tourLabel + " — one player";
+        document.getElementById("summary-subtotal").textContent = money(t.buyIn);
         document.getElementById("summary-fee").textContent = money(t.fee);
         document.getElementById("summary-total").textContent = money(t.total);
         show(summaryEl);
@@ -251,11 +249,8 @@
           club: document.getElementById("club").value,
           platform: document.getElementById("platform").value,
           tour: selectedTour,
-          captainEmail: document.getElementById("email").value,
-          players: [
-            document.getElementById("player1").value,
-            document.getElementById("player2").value
-          ]
+          email: document.getElementById("email").value,
+          playerName: document.getElementById("player").value
         };
 
         if (!payload.tour) {

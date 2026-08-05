@@ -1,10 +1,13 @@
-// Creates a Stripe Checkout session for one two-man team entering one tour.
+// Creates a Stripe Checkout session for one player entering one tour.
 //
-// Prices live server-side (api/pricing.js) so a tampered client cannot change
+// Buy-in is per individual. Clubs pair their own players into two-man teams,
+// so no partner is collected here.
+//
+// Prices live server-side (lib/pricing.js) so a tampered client cannot change
 // what gets charged. The card processing fee is added as its own line item, so
 // the full buy-in reaches the prize pot and the payer covers Stripe's cut.
 
-const { TOUR_LABELS, PLATFORM_LABELS, TEAM_SIZE, quote } = require("./pricing");
+const { TOUR_LABELS, PLATFORM_LABELS, quote } = require("../lib/pricing");
 
 const STRIPE_API = "https://api.stripe.com/v1";
 
@@ -41,8 +44,8 @@ module.exports = async (req, res) => {
   const tour = clean(body.tour, 20).toLowerCase();
   const platform = clean(body.platform, 20).toLowerCase();
   const club = clean(body.club, 120);
-  const captainEmail = clean(body.captainEmail, 200);
-  const players = Array.isArray(body.players) ? body.players : [];
+  const email = clean(body.email, 200);
+  const playerName = clean(body.playerName, 80);
 
   const priced = quote(tour);
   if (!priced) {
@@ -54,13 +57,11 @@ module.exports = async (req, res) => {
   if (!club) {
     return res.status(400).json({ error: "Pick your club." });
   }
-  if (!isEmail(captainEmail)) {
+  if (!isEmail(email)) {
     return res.status(400).json({ error: "Enter a valid email for the receipt." });
   }
-
-  const names = players.map((p) => clean(p, 80)).filter(Boolean);
-  if (names.length !== TEAM_SIZE) {
-    return res.status(400).json({ error: "Enter both players on the team." });
+  if (!playerName) {
+    return res.status(400).json({ error: "Enter the player's name." });
   }
 
   const origin =
@@ -68,20 +69,19 @@ module.exports = async (req, res) => {
     "https://" + (req.headers["x-forwarded-host"] || req.headers.host || "www.launchpointglobaltour.com");
 
   const entryLabel =
-    TOUR_LABELS[tour] + " — " + PLATFORM_LABELS[platform] + " — team of " + TEAM_SIZE;
+    TOUR_LABELS[tour] + " — " + PLATFORM_LABELS[platform] + " — one player";
 
   const params = {
     mode: "payment",
     success_url: origin + "/signup.html?status=success&session_id={CHECKOUT_SESSION_ID}",
     cancel_url: origin + "/signup.html?status=cancelled",
-    customer_email: captainEmail,
+    customer_email: email,
 
     "line_items[0][quantity]": "1",
     "line_items[0][price_data][currency]": "usd",
-    "line_items[0][price_data][unit_amount]": String(priced.subtotal),
+    "line_items[0][price_data][unit_amount]": String(priced.buyIn),
     "line_items[0][price_data][product_data][name]": entryLabel,
-    "line_items[0][price_data][product_data][description]":
-      club + " — " + names.join(" & "),
+    "line_items[0][price_data][product_data][description]": club + " — " + playerName,
 
     "line_items[1][quantity]": "1",
     "line_items[1][price_data][currency]": "usd",
@@ -93,9 +93,8 @@ module.exports = async (req, res) => {
     "metadata[club]": club,
     "metadata[platform]": platform,
     "metadata[tour]": tour,
-    "metadata[player_1]": names[0],
-    "metadata[player_2]": names[1],
-    "metadata[buy_in_cents]": String(priced.subtotal),
+    "metadata[player]": playerName,
+    "metadata[buy_in_cents]": String(priced.buyIn),
     "metadata[fee_cents]": String(priced.fee)
   };
 
