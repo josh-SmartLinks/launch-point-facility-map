@@ -10,6 +10,8 @@
 
 const Stripe = require("stripe");
 const { getDb } = require("../lib/db");
+const { TOUR_LABELS, PLATFORM_LABELS } = require("../lib/pricing");
+const email = require("../lib/email");
 
 function readRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -45,46 +47,85 @@ async function handler(req, res) {
     return res.status(400).json({ error: "Invalid signature" });
   }
 
+  // Storage and email are independent: a deployment with only one of them
+  // configured should still do that one thing.
   const db = getDb();
-  if (!db) {
-    // Nothing to write to, but tell Stripe we got it so it stops retrying.
-    console.error("Webhook received with no database configured:", event.type);
-    return res.status(200).json({ received: true, stored: false });
-  }
+  const session = event.data.object;
 
   try {
-    const session = event.data.object;
-
     if (event.type === "checkout.session.completed") {
       const m = session.metadata || {};
+      const signup = {
+        club: m.club || "Unknown",
+        platform: m.platform || "",
+        platformLabel: PLATFORM_LABELS[m.platform] || m.platform || "",
+        tour: m.tour || "",
+        tourLabel: TOUR_LABELS[m.tour] || m.tour || "",
+        playerName: m.player || "",
+        email: session.customer_email || "",
+        phone: m.phone || "",
+        buyInCents: Number(m.buy_in_cents || 0),
+        feeCents: Number(m.fee_cents || 0),
+        totalCents: session.amount_total || 0
+      };
 
-      // upsert, not update: if the pending row never got written (database
-      // was down at checkout), the paid signup still lands.
-      await db.signup.upsert({
-        where: { stripeSessionId: session.id },
-        create: {
-          stripeSessionId: session.id,
-          paymentIntentId: session.payment_intent || null,
-          status: "paid",
-          paidAt: new Date(),
-          club: m.club || "Unknown",
-          platform: m.platform || "",
-          tour: m.tour || "",
-          playerName: m.player || "",
-          email: session.customer_email || "",
-          phone: m.phone || "",
-          buyInCents: Number(m.buy_in_cents || 0),
-          feeCents: Number(m.fee_cents || 0),
-          totalCents: session.amount_total || 0
-        },
-        update: {
-          status: "paid",
-          paidAt: new Date(),
-          paymentIntentId: session.payment_intent || null,
-          totalCents: session.amount_total || 0
+      if (db) {
+        // upsert, not update: if the pending row never got written (database
+        // was down at checkout), the paid signup still lands.
+        await db.signup.upsert({
+          where: { stripeSessionId: session.id },
+          create: Object.assign(
+            {
+              stripeSessionId: session.id,
+              paymentIntentId: session.payment_intent || null,
+              status: "paid",
+              paidAt: new Date()
+            },
+            {
+              club: signup.club,
+              platform: signup.platform,
+              tour: signup.tour,
+              playerName: signup.playerName,
+              email: signup.email,
+              phone: signup.phone,
+              buyInCents: signup.buyInCents,
+              feeCents: signup.feeCents,
+              totalCents: signup.totalCents
+            }
+          ),
+          update: {
+            status: "paid",
+            paidAt: new Date(),
+            paymentIntentId: session.payment_intent || null,
+            totalCents: signup.totalCents
+          }
+        });
+      } else {
+        console.error("Paid signup received with no database configured:", session.id);
+      }
+
+      // The player has already paid, so email problems get logged, never
+      // thrown — a rejected send must not trigger a Stripe retry.
+      if (email.isConfigured()) {
+        const confirmation = email.playerConfirmation(signup);
+        await email.send({
+          to: signup.email,
+          subject: confirmation.subject,
+          html: confirmation.html,
+          replyTo: process.env.ADMIN_EMAIL
+        });
+
+        if (process.env.ADMIN_EMAIL) {
+          const notice = email.adminNotification(signup);
+          await email.send({
+            to: process.env.ADMIN_EMAIL,
+            subject: notice.subject,
+            html: notice.html,
+            replyTo: signup.email
+          });
         }
-      });
-    } else if (event.type === "checkout.session.expired") {
+      }
+    } else if (event.type === "checkout.session.expired" && db) {
       await db.signup.updateMany({
         where: { stripeSessionId: session.id, status: "pending" },
         data: { status: "expired" }

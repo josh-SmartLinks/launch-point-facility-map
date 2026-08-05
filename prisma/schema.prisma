@@ -43,18 +43,23 @@ model Signup {
   @@index([status])
 }
 
-// Clubs joining the tour. Free, no payment involved.
+// Clubs registering interest in the tour. Free, no payment involved.
 model ClubApplication {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
 
-  facility    String
-  contactName String
-  email       String
-  phone       String
-  city        String
-  platform    String? // sgt | trackman, once known
-  sim         String? // launch monitor, e.g. "Trackman iO"
-  bays        Int?
-  notes       String?
+  facility      String
+  contactName   String
+  email         String
+  phone         String
+  city          String // free text: city / state / country
+  launchMonitor String // what they run, e.g. "Uneekor EyeXO2"
+  interest      String // yes | maybe | not_now
+  notes         String?
+
+  // Derived once we know it, so a club can be matched to the right series.
+  platform String? // sgt | trackman
+
+  @@index([interest])
+  @@index([createdAt])
 }

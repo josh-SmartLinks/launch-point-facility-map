@@ -91,7 +91,7 @@ module.exports = async (req, res) => {
   const origin = allowedOrigin(req);
 
   const entryLabel =
-    TOUR_LABELS[tour] + " — " + PLATFORM_LABELS[platform] + " — one player";
+    TOUR_LABELS[tour] + ", " + PLATFORM_LABELS[platform] + ", one player";
 
   const params = {
     mode: "payment",
@@ -103,7 +103,7 @@ module.exports = async (req, res) => {
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][unit_amount]": String(priced.buyIn),
     "line_items[0][price_data][product_data][name]": entryLabel,
-    "line_items[0][price_data][product_data][description]": club + " — " + playerName,
+    "line_items[0][price_data][product_data][description]": club + ": " + playerName,
 
     "line_items[1][quantity]": "1",
     "line_items[1][price_data][currency]": "usd",

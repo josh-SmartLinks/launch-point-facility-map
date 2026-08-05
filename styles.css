@@ -573,7 +573,8 @@ html, body {
   margin-bottom: 6px;
 }
 .field input,
-.field select {
+.field select,
+.field textarea {
   width: 100%;
   padding: 11px 12px;
   font-family: inherit;
@@ -594,8 +595,13 @@ html, body {
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
 }
+.field textarea {
+  resize: vertical;
+  min-height: 90px;
+}
 .field input:focus,
-.field select:focus {
+.field select:focus,
+.field textarea:focus {
   outline: none;
   border-color: var(--lp-blue);
 }
@@ -678,7 +684,10 @@ button.apply-btn:disabled { opacity: 0.6; cursor: default; }
   padding-top: 24px;
   border-top: 1px solid var(--lp-blue);
 }
-.doc-actions a {
+/* Buttons and links share the row, so they must size identically — sizing
+   only the anchors made the secondary link stretch past the submit button. */
+.doc-actions a,
+.doc-actions button {
   flex: 1 1 200px;
   padding: 14px 18px;
 }

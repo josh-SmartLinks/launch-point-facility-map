@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <title>Official Signup — Launch Point Global Tour</title>
+  <title>Official Signup: Launch Point Global Tour</title>
   <meta name="description" content="Register your two-man team for the Launch Point Global Tour. Pick your club, platform, and tour, then pay the team buy-in." />
   <meta name="robots" content="noindex, follow" />
   <meta name="theme-color" content="#000000" />
@@ -79,20 +79,92 @@
       </section>
 
       <p>
-        Send your facility details through the club application and you will be added to the
-        facility map and the club roster. What to have ready: facility name, contact name, email,
-        phone, city and state, your platform (SGT/GSPro or Trackman), and bay count.
+        This is an early interest form to gauge who wants in. Nothing is locked yet. We're putting
+        together a nationwide and international GSPro tournament series, with weekly events this
+        Fall to Spring, club-vs-club competition, and a prize purse. Everything will be run at cost
+        with 100% transparency on the financials.
       </p>
+      <p>
+        Our lawyer is working through the legality across the board, including international, and
+        this list helps us see who's interested so we can build the series around real demand.
+        TrackMan facilities will be run as a separate series, and we already have a growing list.
+      </p>
+      <p>Drop your info below to get on the list. More details to come.</p>
 
       <p class="field-hint">
         Whatever you charge your own players for bay time or as a club registration fee is entirely
         up to you. That money goes to your club directly and never passes through the tour.
       </p>
 
-      <div class="doc-actions">
-        <a class="apply-btn display" href="https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=047wx5o2pE2cogL4RD3nD5hcF4Ws8uNIs7ABgUGnWiJUQ0FYNTdOS1MySjA4S09MU0FQOEZYVVBXVy4u" target="_blank" rel="noopener noreferrer">CLUB APPLICATION</a>
-        <a class="btn-outline display" href="/signup.html">BACK</a>
-      </div>
+      <section id="club-success" class="callout" hidden>
+        <h2>You're on the list</h2>
+        <p>Thanks. We'll be in touch as the series firms up.</p>
+        <p><a href="/">View the facility map</a></p>
+      </section>
+
+      <form id="club-form">
+        <section class="form-section">
+          <label class="field">
+            <span class="field-label">Facility name</span>
+            <input id="c-facility" type="text" required maxlength="120" />
+          </label>
+          <label class="field">
+            <span class="field-label">Your name</span>
+            <input id="c-name" type="text" autocomplete="name" required maxlength="80" />
+          </label>
+          <label class="field">
+            <span class="field-label">Email</span>
+            <input id="c-email" type="email" autocomplete="email" required maxlength="200" />
+          </label>
+          <label class="field">
+            <span class="field-label">Phone number</span>
+            <input id="c-phone" type="tel" autocomplete="tel" required maxlength="30" placeholder="555-555-5555" />
+          </label>
+          <label class="field">
+            <span class="field-label">City / State / Country</span>
+            <input id="c-city" type="text" required maxlength="120" placeholder="Roselle, IL, USA" />
+          </label>
+          <label class="field">
+            <span class="field-label">Which launch monitor do you use?</span>
+            <input id="c-monitor" type="text" required maxlength="120" placeholder="Uneekor EyeXO2, Trackman iO, ProTee VX…" />
+          </label>
+
+          <!-- Spam trap: hidden from people, irresistible to bots. -->
+          <input id="c-website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;" />
+        </section>
+
+        <section class="form-section">
+          <h2>Are you interested in joining the global tournament series this Fall to Spring?</h2>
+          <div class="tour-options">
+            <label class="tour-option" for="i-yes">
+              <input type="radio" name="interest" id="i-yes" value="yes" required />
+              <span class="tour-text"><span class="tour-name">Yes</span></span>
+            </label>
+            <label class="tour-option" for="i-maybe">
+              <input type="radio" name="interest" id="i-maybe" value="maybe" />
+              <span class="tour-text"><span class="tour-name">Maybe, tell me more</span></span>
+            </label>
+            <label class="tour-option" for="i-no">
+              <input type="radio" name="interest" id="i-no" value="not_now" />
+              <span class="tour-text"><span class="tour-name">Not right now</span></span>
+            </label>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <label class="field">
+            <span class="field-label">Anything you'd like us to know, or any questions?</span>
+            <textarea id="c-notes" rows="4" maxlength="2000"></textarea>
+          </label>
+        </section>
+
+        <p id="club-error" class="form-error" hidden></p>
+
+        <div class="doc-actions">
+          <a class="btn-outline display" href="/signup.html">BACK</a>
+          <button type="submit" class="apply-btn display" id="club-submit">SUBMIT</button>
+        </div>
+      </form>
     </section>
 
     <!-- Shown when Stripe is not configured on this deployment. -->
@@ -118,14 +190,14 @@
       </p>
       <p>
         If your club charges for bay time or a club registration fee, that is paid to the club
-        directly &mdash; it is not part of this buy-in.
+        directly. It is not part of this buy-in.
       </p>
       <p><a href="/">View the facility map</a></p>
     </section>
 
     <form id="signup-form" hidden>
       <p class="doc-note" id="test-mode-note" hidden>
-        Test mode &mdash; no real charges. Use card 4242 4242 4242 4242 with any future expiry and CVC.
+        Test mode: no real charges. Use card 4242 4242 4242 4242 with any future expiry and CVC.
       </p>
 
       <p class="lead">
@@ -135,7 +207,7 @@
 
       <p class="doc-note">
         This buy-in covers your tour entry only. If your club charges for bay time or a club
-        registration fee, you pay that to your club directly &mdash; it is not collected here.
+        registration fee, you pay that to your club directly. It is not collected here.
       </p>
 
       <section class="form-section">
@@ -203,9 +275,10 @@
 
       <p id="form-error" class="form-error" hidden></p>
 
+      <!-- Back on the left, the action you actually want on the right. -->
       <div class="doc-actions">
-        <button type="submit" class="apply-btn display" id="submit-btn">CONTINUE TO PAYMENT</button>
         <a class="btn-outline display" href="/signup.html">BACK</a>
+        <button type="submit" class="apply-btn display" id="submit-btn">CONTINUE TO PAYMENT</button>
       </div>
     </form>
   </main>
@@ -268,7 +341,7 @@
           var tags = clubPlatforms[n] || [];
           // Show the technology right in the option so the choice is obvious.
           opt.textContent = tags.length
-            ? n + " — " + tags.map(function (p) { return PLATFORM_NAMES[p] || p; }).join(" & ")
+            ? n + " (" + tags.map(function (p) { return PLATFORM_NAMES[p] || p; }).join(" & ") + ")"
             : n;
           select.appendChild(opt);
         });
@@ -379,7 +452,7 @@
         var t = pricing.tours.filter(function (x) { return x.tour === selectedTour; })[0];
         if (!t) { hide(summaryEl); return; }
 
-        document.getElementById("summary-label").textContent = t.tourLabel + " — one player";
+        document.getElementById("summary-label").textContent = t.tourLabel + ", one player";
         document.getElementById("summary-subtotal").textContent = money(t.buyIn);
         document.getElementById("summary-fee").textContent = money(t.fee);
         document.getElementById("summary-total").textContent = money(t.total);
@@ -439,6 +512,57 @@
           });
       });
 
+      // ---------- Club interest form ----------
+      function wireClubForm() {
+        var form = document.getElementById("club-form");
+        var errEl = document.getElementById("club-error");
+        var okEl = document.getElementById("club-success");
+        var btn = document.getElementById("club-submit");
+
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          hide(errEl);
+
+          var picked = form.querySelector('input[name="interest"]:checked');
+          if (!picked) {
+            errEl.textContent = "Pick one of the interest options.";
+            show(errEl);
+            return;
+          }
+
+          btn.disabled = true;
+          btn.textContent = "SENDING…";
+
+          fetch("/api/club-interest", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              facility: document.getElementById("c-facility").value,
+              contactName: document.getElementById("c-name").value,
+              email: document.getElementById("c-email").value,
+              phone: document.getElementById("c-phone").value,
+              city: document.getElementById("c-city").value,
+              launchMonitor: document.getElementById("c-monitor").value,
+              interest: picked.value,
+              notes: document.getElementById("c-notes").value,
+              website: document.getElementById("c-website").value
+            })
+          })
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+            .then(function (res) {
+              if (!res.ok) throw new Error(res.d.error || "Could not send that. Try again.");
+              hide(form);
+              show(okEl);
+            })
+            .catch(function (err) {
+              errEl.textContent = err.message;
+              show(errEl);
+              btn.disabled = false;
+              btn.textContent = "SUBMIT";
+            });
+        });
+      }
+
       // ---------- Boot ----------
       var params = new URLSearchParams(window.location.search);
       var status = params.get("status");
@@ -451,6 +575,7 @@
       if (type === "club") {
         hide(loadingEl);
         show(clubPanelEl);
+        wireClubForm();
         return;
       }
 
@@ -497,7 +622,7 @@
             show(document.getElementById("test-mode-note"));
           }
           if (status === "cancelled") {
-            errorEl.textContent = "Checkout cancelled — nothing was charged.";
+            errorEl.textContent = "Checkout cancelled. Nothing was charged.";
             show(errorEl);
           }
           show(formEl);
