@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Official Signup — Launch Point Global Tour</title>
+  <meta name="description" content="Register your two-man team for the Launch Point Global Tour. Pick your club, platform, and tour, then pay the team buy-in." />
+  <meta name="robots" content="noindex, follow" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="canonical" href="https://www.launchpointglobaltour.com/signup.html" />
+
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="doc-body">
+  <header id="header">
+    <div class="header-left">
+      <a href="/" aria-label="Back to facility map">
+        <img id="logo" src="assets/logo.png" alt="Launch Point Global Tour" />
+      </a>
+    </div>
+    <a class="header-link display" href="/proposal.html">&larr; PROPOSAL</a>
+  </header>
+
+  <main class="doc">
+    <h1 class="doc-title">Official Signup</h1>
+
+    <!-- Shown while /api/config is checked. -->
+    <p id="signup-loading" class="doc-note">Checking signup status&hellip;</p>
+
+    <!-- Shown when Stripe is not configured on this deployment. -->
+    <section id="signup-closed" class="callout" hidden>
+      <h2>Signup opens soon</h2>
+      <p>
+        Registration is not open yet. The tour schedule, pricing, and format are all in the
+        <a href="/proposal.html">proposal</a>.
+      </p>
+      <p>Questions: <a href="mailto:Josh@launchpointsim.com">Josh@launchpointsim.com</a></p>
+    </section>
+
+    <!-- Shown after a completed checkout. -->
+    <section id="signup-success" class="callout" hidden>
+      <h2>You&rsquo;re in</h2>
+      <p>
+        Payment received. A receipt is on its way to the email you entered, and your club captain
+        will get the roster confirmation.
+      </p>
+      <p><a href="/">View the facility map</a></p>
+    </section>
+
+    <form id="signup-form" hidden>
+      <p class="doc-note" id="test-mode-note" hidden>
+        Test mode &mdash; no real charges. Use card 4242 4242 4242 4242 with any future expiry and CVC.
+      </p>
+
+      <p class="lead">
+        Teams are two-man. One payment covers both players, and the card processing fee is added
+        on top so the full buy-in goes to the pot.
+      </p>
+
+      <section class="form-section">
+        <h2>Your club</h2>
+        <label class="field">
+          <span class="field-label">Club</span>
+          <select id="club" required></select>
+        </label>
+        <label class="field">
+          <span class="field-label">Platform</span>
+          <select id="platform" required>
+            <option value="">Select&hellip;</option>
+            <option value="sgt">SGT / GSPro</option>
+            <option value="trackman">Trackman</option>
+          </select>
+        </label>
+        <p class="field-hint">
+          SGT and Trackman run as two separate tours with separate pots. Pick the one your club
+          competes on.
+        </p>
+      </section>
+
+      <section class="form-section">
+        <h2>Your team</h2>
+        <label class="field">
+          <span class="field-label">Player 1</span>
+          <input id="player1" type="text" autocomplete="name" required maxlength="80" />
+        </label>
+        <label class="field">
+          <span class="field-label">Player 2</span>
+          <input id="player2" type="text" autocomplete="off" required maxlength="80" />
+        </label>
+        <label class="field">
+          <span class="field-label">Email for the receipt</span>
+          <input id="email" type="email" autocomplete="email" required maxlength="200" />
+        </label>
+      </section>
+
+      <section class="form-section">
+        <h2>Tour</h2>
+        <div id="tour-options" class="tour-options"></div>
+      </section>
+
+      <section class="callout summary" id="summary" hidden>
+        <div class="summary-row">
+          <span id="summary-label">Team buy-in</span>
+          <span id="summary-subtotal"></span>
+        </div>
+        <div class="summary-row">
+          <span>Card processing fee</span>
+          <span id="summary-fee"></span>
+        </div>
+        <div class="summary-row summary-total">
+          <span>Total</span>
+          <span id="summary-total"></span>
+        </div>
+      </section>
+
+      <p id="form-error" class="form-error" hidden></p>
+
+      <div class="doc-actions">
+        <button type="submit" class="apply-btn display" id="submit-btn">CONTINUE TO PAYMENT</button>
+        <a class="btn-outline display" href="/proposal.html">READ THE PROPOSAL</a>
+      </div>
+    </form>
+  </main>
+
+  <script src="facilities.js"></script>
+  <script>
+    (function () {
+      var loadingEl = document.getElementById("signup-loading");
+      var closedEl = document.getElementById("signup-closed");
+      var successEl = document.getElementById("signup-success");
+      var formEl = document.getElementById("signup-form");
+      var errorEl = document.getElementById("form-error");
+      var submitBtn = document.getElementById("submit-btn");
+      var summaryEl = document.getElementById("summary");
+
+      var pricing = null;
+      var selectedTour = "";
+
+      function money(cents) {
+        return "$" + (cents / 100).toFixed(2);
+      }
+
+      function show(el) { el.hidden = false; }
+      function hide(el) { el.hidden = true; }
+
+      // ---------- Club list, from the same file the map uses ----------
+      function fillClubs() {
+        var select = document.getElementById("club");
+        var names = [];
+        var seen = {};
+
+        if (typeof FACILITIES !== "undefined" && Array.isArray(FACILITIES)) {
+          FACILITIES.forEach(function (f) {
+            // A club with two venues appears once in the dropdown.
+            if (!seen[f.name]) {
+              seen[f.name] = true;
+              names.push(f.name);
+            }
+          });
+        }
+        names.sort(function (a, b) { return a.localeCompare(b); });
+
+        select.innerHTML = "";
+        var blank = document.createElement("option");
+        blank.value = "";
+        blank.textContent = "Select…";
+        select.appendChild(blank);
+
+        names.forEach(function (n) {
+          var opt = document.createElement("option");
+          opt.value = n;
+          opt.textContent = n;
+          select.appendChild(opt);
+        });
+
+        var other = document.createElement("option");
+        other.value = "Other / not listed";
+        other.textContent = "Other / not listed";
+        select.appendChild(other);
+      }
+
+      // ---------- Tour choices, priced by the server ----------
+      function fillTours() {
+        var wrap = document.getElementById("tour-options");
+        wrap.innerHTML = "";
+
+        pricing.tours.forEach(function (t) {
+          var id = "tour-" + t.tour;
+
+          var label = document.createElement("label");
+          label.className = "tour-option";
+          label.setAttribute("for", id);
+
+          var radio = document.createElement("input");
+          radio.type = "radio";
+          radio.name = "tour";
+          radio.id = id;
+          radio.value = t.tour;
+
+          var text = document.createElement("span");
+          text.className = "tour-text";
+
+          var name = document.createElement("span");
+          name.className = "tour-name";
+          name.textContent = t.tourLabel;
+
+          var price = document.createElement("span");
+          price.className = "tour-price";
+          price.textContent = money(t.perPlayer) + " per player · " + money(t.subtotal) + " per team";
+
+          text.appendChild(name);
+          text.appendChild(price);
+          label.appendChild(radio);
+          label.appendChild(text);
+          wrap.appendChild(label);
+
+          radio.addEventListener("change", function () {
+            selectedTour = t.tour;
+            updateSummary();
+          });
+        });
+      }
+
+      function updateSummary() {
+        var t = pricing.tours.filter(function (x) { return x.tour === selectedTour; })[0];
+        if (!t) { hide(summaryEl); return; }
+
+        document.getElementById("summary-label").textContent =
+          t.tourLabel + " — team of " + pricing.teamSize;
+        document.getElementById("summary-subtotal").textContent = money(t.subtotal);
+        document.getElementById("summary-fee").textContent = money(t.fee);
+        document.getElementById("summary-total").textContent = money(t.total);
+        show(summaryEl);
+      }
+
+      // ---------- Submit ----------
+      formEl.addEventListener("submit", function (e) {
+        e.preventDefault();
+        hide(errorEl);
+
+        var payload = {
+          club: document.getElementById("club").value,
+          platform: document.getElementById("platform").value,
+          tour: selectedTour,
+          captainEmail: document.getElementById("email").value,
+          players: [
+            document.getElementById("player1").value,
+            document.getElementById("player2").value
+          ]
+        };
+
+        if (!payload.tour) {
+          errorEl.textContent = "Pick a tour.";
+          show(errorEl);
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = "STARTING CHECKOUT…";
+
+        fetch("/api/create-checkout-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            if (!res.ok || !res.d.url) {
+              throw new Error(res.d.error || "Could not start checkout.");
+            }
+            window.location.href = res.d.url;
+          })
+          .catch(function (err) {
+            errorEl.textContent = err.message;
+            show(errorEl);
+            submitBtn.disabled = false;
+            submitBtn.textContent = "CONTINUE TO PAYMENT";
+          });
+      });
+
+      // ---------- Boot ----------
+      var status = new URLSearchParams(window.location.search).get("status");
+
+      fetch("/api/config")
+        .then(function (r) { return r.json(); })
+        .then(function (cfg) {
+          hide(loadingEl);
+
+          if (!cfg.enabled) {
+            show(closedEl);
+            return;
+          }
+
+          pricing = cfg.pricing;
+
+          if (status === "success") {
+            show(successEl);
+            return;
+          }
+
+          fillClubs();
+          fillTours();
+          if (cfg.mode === "test") {
+            show(document.getElementById("test-mode-note"));
+          }
+          if (status === "cancelled") {
+            errorEl.textContent = "Checkout cancelled — nothing was charged.";
+            show(errorEl);
+          }
+          show(formEl);
+        })
+        .catch(function () {
+          hide(loadingEl);
+          show(closedEl);
+        });
+    })();
+  </script>
+
+  <!-- Vercel Web Analytics (static-site integration; equivalent of @vercel/analytics) -->
+  <script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

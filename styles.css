@@ -410,6 +410,45 @@ html, body {
 .doc strong { color: var(--lp-white); }
 .doc a { color: var(--lp-blue); }
 
+.doc h3 {
+  font-family: "Archivo Black", system-ui, sans-serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--lp-blue);
+  margin: 22px 0 8px;
+}
+
+/* Tables scroll on their own so the page body never scrolls sideways. */
+.doc .table-wrap {
+  overflow-x: auto;
+  margin: 0 0 18px;
+  -webkit-overflow-scrolling: touch;
+}
+.doc table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 460px;
+  font-size: 14px;
+}
+.doc th,
+.doc td {
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+}
+.doc thead th {
+  font-family: "Archivo Black", system-ui, sans-serif;
+  font-style: italic;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lp-blue);
+  border-bottom: 1px solid var(--lp-blue);
+}
+.doc tbody tr:last-child td { border-bottom: none; }
+.doc tbody td:first-child { color: var(--lp-white); }
+
 .doc .callout {
   border: 1px solid var(--lp-blue);
   padding: 16px 18px;
@@ -420,6 +459,110 @@ html, body {
 .doc .callout h2 { border-bottom: none; padding-bottom: 4px; margin-bottom: 6px; }
 
 .doc .meeting h2 { color: var(--lp-blue); }
+
+/* ---------- Signup form ---------- */
+.form-section { margin: 0 0 28px; }
+
+.field {
+  display: block;
+  margin: 0 0 14px;
+}
+.field-label {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lp-blue);
+  margin-bottom: 6px;
+}
+.field input,
+.field select {
+  width: 100%;
+  padding: 11px 12px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--lp-white);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.field select {
+  /* Room for the caret drawn below. */
+  padding-right: 34px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--lp-blue) 50%),
+                    linear-gradient(135deg, var(--lp-blue) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 19px, calc(100% - 13px) 19px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--lp-blue);
+}
+.field-hint {
+  font-size: 13px;
+  opacity: 0.7;
+  margin: 0;
+}
+
+.tour-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tour-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  cursor: pointer;
+}
+.tour-option:hover { border-color: var(--lp-blue); }
+.tour-option:has(input:checked) {
+  border-color: var(--lp-blue);
+  background: rgba(17, 121, 191, 0.12);
+}
+.tour-option input { margin-top: 3px; accent-color: var(--lp-blue); }
+.tour-text { display: flex; flex-direction: column; gap: 3px; }
+.tour-name { font-weight: 600; font-size: 15px; }
+.tour-price { font-size: 13px; opacity: 0.75; }
+
+.summary { margin: 0 0 20px; }
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 15px;
+  padding: 5px 0;
+}
+.summary-total {
+  border-top: 1px solid var(--lp-blue);
+  margin-top: 6px;
+  padding-top: 11px;
+  font-weight: 600;
+  color: var(--lp-white);
+}
+
+.form-error {
+  border-left: 3px solid #e5484d;
+  padding: 10px 14px;
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--lp-white);
+}
+
+/* The submit button is a <button>, so give it the anchor treatment. */
+button.apply-btn {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+}
+button.apply-btn:disabled { opacity: 0.6; cursor: default; }
 
 .doc-actions {
   display: flex;
