@@ -59,6 +59,21 @@ module.exports = async (req, res) => {
     }
 
     const list = await callResend("", "GET");
+
+    // A send-only key cannot read domains. That is a key permission, not a
+    // problem with the domain or with sending.
+    if (list.status === 401 && list.body && list.body.name === "restricted_api_key") {
+      return res.status(200).json({
+        status: 401,
+        restrictedKey: true,
+        note:
+          "This Resend key is send-only, so it cannot list or verify domains. Sending still " +
+          "works. To use these buttons, create a key with full access, or check the domain " +
+          "in the Resend dashboard instead.",
+        body: list.body
+      });
+    }
+
     return res.status(200).json(list);
   } catch (err) {
     console.error("Resend domains call failed:", err && err.message);

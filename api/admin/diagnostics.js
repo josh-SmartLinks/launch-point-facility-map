@@ -46,12 +46,28 @@ module.exports = async (req, res) => {
   const db = getDb();
   if (db) {
     try {
-      const [clubs, signups] = await Promise.all([
+      const [clubs, signups, rows] = await Promise.all([
         db.clubApplication.count(),
-        db.signup.count()
+        db.signup.count(),
+        db.signup.findMany({ select: { status: true, paidAt: true }, orderBy: { createdAt: "desc" }, take: 200 })
       ]);
       out.database.reachable = true;
       out.database.tables = { clubApplications: clubs, signups };
+
+      // A pile of pending rows with nothing paid means Stripe's webhook is not
+      // reaching this deployment, which is invisible from the tables alone.
+      const byStatus = {};
+      rows.forEach((r) => { byStatus[r.status] = (byStatus[r.status] || 0) + 1; });
+      out.database.signupsByStatus = byStatus;
+
+      const paid = rows.filter((r) => r.paidAt);
+      out.webhook = {
+        confirmedPayments: paid.length,
+        lastConfirmedAt: paid.length ? paid[0].paidAt : null,
+        note: !paid.length && rows.length
+          ? "Signups exist but none are confirmed paid, so checkout.session.completed is not arriving. In test mode the webhook destination and STRIPE_WEBHOOK_SECRET must both be the test-mode ones."
+          : undefined
+      };
     } catch (err) {
       out.database.error = (err && err.message ? err.message : String(err)).slice(0, 300);
     }

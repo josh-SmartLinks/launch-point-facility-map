@@ -836,6 +836,7 @@
         fetch("/api/admin/resend-domains", { credentials: "same-origin" })
           .then(function (r) { return r.json(); })
           .then(function (d) {
+            if (d.restrictedKey) throw new Error(d.note);
             var list = (d.body && d.body.data) || [];
             if (!list.length) throw new Error("No domains in this Resend account.");
             var wanted = list.filter(function (x) { return x.name === "launchpointsim.com"; })[0] || list[0];
