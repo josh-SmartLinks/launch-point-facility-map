@@ -471,25 +471,31 @@ html, body {
   margin: 22px 0 8px;
 }
 
-/* Tables scroll on their own so the page body never scrolls sideways. */
+/* Tables shrink to fit rather than scrolling: a column pushed off the edge is
+   a column nobody reads, and the SGT prices were landing there. */
 .doc .table-wrap {
-  overflow-x: auto;
   margin: 0 0 18px;
-  -webkit-overflow-scrolling: touch;
 }
 .doc table {
   border-collapse: collapse;
   width: 100%;
-  min-width: 460px;
+  /* Auto layout sizes each column to its content, which suits both a wide
+     label column and five narrow date columns without tuning either. */
+  table-layout: auto;
   font-size: 14px;
 }
 .doc th,
 .doc td {
   text-align: left;
-  padding: 9px 12px;
+  padding: 9px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  white-space: nowrap;
+  /* Wrapping is what lets five columns fit a phone. */
+  white-space: normal;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
+/* Numbers should not wrap mid-figure. */
+.doc table td + td { white-space: nowrap; }
 .doc thead th {
   font-family: "Archivo Black", system-ui, sans-serif;
   font-style: italic;
@@ -501,6 +507,35 @@ html, body {
 }
 .doc tbody tr:last-child td { border-bottom: none; }
 .doc tbody td:first-child { color: var(--lp-white); }
+
+/* Tighten everything a step on phones so no column is squeezed out. */
+@media (max-width: 560px) {
+  .doc table { font-size: 12.5px; }
+  .doc th,
+  .doc td { padding: 7px 6px; }
+  .doc thead th { font-size: 10.5px; letter-spacing: 0.02em; }
+  /* Dates may wrap on a phone; that is better than a column off screen. */
+  .doc table td + td { white-space: normal; }
+}
+
+/* Admin tables carry far more per row than a proposal table, so they keep
+   scrolling. The admin page is the only .doc-wide one. */
+.doc-wide .table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.doc #clubs-table,
+.doc #signups-table,
+.doc .club-players {
+  table-layout: auto;
+  min-width: 640px;
+}
+.doc #clubs-table th,
+.doc #clubs-table td,
+.doc #signups-table th,
+.doc #signups-table td,
+.doc .club-players th,
+.doc .club-players td { white-space: normal; }
 
 .doc .callout {
   border: 1px solid var(--lp-blue);
