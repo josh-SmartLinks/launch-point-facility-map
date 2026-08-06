@@ -33,7 +33,10 @@ module.exports = async (req, res) => {
     email: {
       apiKeyPresent: Boolean(process.env.RESEND_API_KEY),
       adminEmail: process.env.ADMIN_EMAIL || null,
-      from: process.env.EMAIL_FROM || "signups@launchpointglobaltour.com (default)"
+      // Read from the sender itself, so this can never drift from what is
+      // actually used on the wire.
+      from: email.fromAddress(),
+      fromSource: process.env.EMAIL_FROM ? "EMAIL_FROM" : "ADMIN_EMAIL"
     },
     database: { urlPresent: Boolean(process.env.DATABASE_URL), reachable: false, tables: null }
   };
