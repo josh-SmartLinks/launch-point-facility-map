@@ -81,7 +81,13 @@ async function handler(req, res) {
         totalCents: session.amount_total || 0
       };
 
+      // The write gets its own catch. Sharing one with the email meant any
+      // database error — a missing column after a schema change, a dropped
+      // connection — skipped the confirmation entirely, which is the opposite
+      // of the independence this handler is supposed to have.
+      let stored = false;
       if (db) {
+        try {
         // upsert, not update: if the pending row never got written (database
         // was down at checkout), the paid signup still lands.
         await db.signup.upsert({
@@ -115,6 +121,17 @@ async function handler(req, res) {
             partnerPhone: signup.partnerPhone
           }
         });
+        stored = true;
+        } catch (dbErr) {
+          // Loud, because the payment happened and the roster now disagrees
+          // with Stripe. Stripe stays the source of truth until it is fixed.
+          console.error(
+            "PAYMENT NOT RECORDED for session", session.id,
+            "player:", signup.playerName,
+            "email:", signup.email,
+            "error:", dbErr && dbErr.message
+          );
+        }
       } else {
         console.error("Paid signup received with no database configured:", session.id);
       }
@@ -202,7 +219,7 @@ async function handler(req, res) {
       });
     }
 
-    return res.status(200).json({ received: true });
+    return res.status(200).json({ received: true, stored: typeof stored === "undefined" ? null : stored });
   } catch (err) {
     // A 500 makes Stripe retry, which is what we want for a transient
     // database problem.
