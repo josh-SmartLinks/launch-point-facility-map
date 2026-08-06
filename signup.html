@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <title>Official Signup: Launch Point Global Tour</title>
-  <meta name="description" content="Register your two-man team for the Launch Point Global Tour. Pick your club, platform, and tour, then pay the team buy-in." />
+  <meta name="description" content="Register for the Launch Point Global Tour. Find your club, pick a tour, and pay your buy-in." />
   <meta name="robots" content="noindex, follow" />
   <meta name="theme-color" content="#000000" />
   <link rel="canonical" href="https://www.launchpointglobaltour.com/signup" />
@@ -224,21 +224,13 @@
           <button type="button" class="platform-chip" id="near-me">FIND A CLUB NEAR ME</button>
           <span class="near-status" id="near-status"></span>
         </div>
-        <!-- Only ever shown for a club whose platform we do not have on file.
-             A club we know decides this, so there is nothing to choose and no
-             way to pick the wrong one. -->
-        <label class="field" id="platform-field" hidden>
-          <span class="field-label">Platform</span>
-          <select id="platform">
-            <option value="">Select&hellip;</option>
-            <option value="sgt">SGT / GSPro</option>
-            <option value="trackman">Trackman</option>
-          </select>
-        </label>
+        <!-- The club settles the platform. There is nothing to choose here, so
+             a player cannot land in the wrong series. -->
+        <input type="hidden" id="platform" />
         <p class="field-locked" id="platform-locked" hidden></p>
-        <p class="field-hint" id="platform-hint">
-          SGT and Trackman run as two separate tours with separate pots. Your platform is set by
-          the club you pick.
+        <p class="field-hint">
+          SGT and Trackman run as two separate tours with separate pots. Yours is set by the club
+          you pick.
         </p>
       </section>
 
@@ -377,7 +369,9 @@
 
         list.innerHTML = "";
 
-        matches.slice(0, 8).forEach(function (c) {
+        // Every match is listed; the box scrolls. Capping it hid most of the
+        // clubs whenever the search was empty.
+        matches.forEach(function (c) {
           var li = document.createElement("li");
           li.setAttribute("role", "option");
           li.tabIndex = 0;
@@ -422,7 +416,9 @@
 
       function fillClubs() {
         buildClubList();
-        clubList.sort(function (a, b) { return a.name.localeCompare(b.name); });
+        clubList.sort(function (a, b) {
+          return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+        });
         searchOrder = clubList.slice();
 
         var input = document.getElementById("club-search");
@@ -507,47 +503,32 @@
         );
       });
 
-      // The club decides the platform. The only case that still asks is a club
-      // with nothing on file, because there is nothing to state.
+      // The club decides the platform, so this only ever reports it.
       function syncPlatform() {
         var club = document.getElementById("club").value;
-        var fieldEl = document.getElementById("platform-field");
         var lockedEl = document.getElementById("platform-locked");
-        var hintEl = document.getElementById("platform-hint");
-        var selectEl = document.getElementById("platform");
+        var fieldEl = document.getElementById("platform");
         var tags = clubPlatforms[club] || [];
 
-        // Nothing picked yet — say nothing about platform.
         if (!club) {
-          selectEl.value = "";
-          hide(fieldEl);
+          fieldEl.value = "";
           hide(lockedEl);
-          hide(hintEl);
           return;
         }
 
         if (tags.length) {
-          // One platform, or both: either way the club settles it, so this is
-          // stated rather than asked. Both means the club fields both series;
-          // the first is the one it competes in.
-          selectEl.value = tags[0];
+          fieldEl.value = tags[0];
           lockedEl.textContent =
             "You'll be playing on " + (PLATFORM_NAMES[tags[0]] || tags[0]) + ", set by your club.";
-          show(lockedEl);
-          hide(fieldEl);
-          hide(hintEl);
-          return;
+        } else {
+          // Nothing on file. Rather than make the player guess, the series is
+          // settled with the club afterwards.
+          fieldEl.value = "unassigned";
+          lockedEl.textContent =
+            "We'll confirm which series your club plays in before the tour starts.";
         }
 
-        // No technology on file, so there is nothing to state and the player
-        // has to say. This is the only case with a choice.
-        selectEl.value = "";
-        hide(lockedEl);
-        show(fieldEl);
-        show(hintEl);
-        Array.prototype.forEach.call(selectEl.options, function (opt) { opt.hidden = false; });
-        hintEl.textContent =
-          "We don't have this club's technology on file yet. Pick the one you play on.";
+        show(lockedEl);
       }
 
       // ---------- Tour choices, priced by the server ----------
@@ -623,7 +604,9 @@
           return;
         }
         if (!payload.platform) {
-          errorEl.textContent = "Pick a platform.";
+          // Derived from the club, so this can only mean the search box has
+          // text in it but nothing was actually selected from the list.
+          errorEl.textContent = "Pick your club from the list.";
           show(errorEl);
           return;
         }
