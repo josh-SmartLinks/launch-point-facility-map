@@ -4,7 +4,9 @@
   "version": "1.0.0",
   "description": "Launch Point Global Tour facility map, proposal, and signup",
   "scripts": {
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test": "node tests/regression.js",
+    "test:live": "node tests/regression.js --live"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",
