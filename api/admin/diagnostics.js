@@ -63,13 +63,48 @@ module.exports = async (req, res) => {
     if (!process.env.ADMIN_EMAIL) {
       out.email.test = { sent: false, reason: "ADMIN_EMAIL is not set" };
     } else {
-      const result = await email.send({
+      // Send the real confirmation template with sample data, so the preview
+      // shows exactly what a player receives rather than a stub.
+      const sample = {
+        club: "Launch Point",
+        platform: "sgt",
+        platformLabel: "SGT / GSPro",
+        tour: "fall",
+        tourLabel: "Fall Tour 2026",
+        playerName: "Sample Player",
+        email: process.env.ADMIN_EMAIL,
+        phone: "555-555-5555",
+        buyInCents: 6000,
+        feeCents: 211,
+        totalCents: 6211
+      };
+
+      const preview = email.playerConfirmation(sample);
+      let result = await email.send({
         to: process.env.ADMIN_EMAIL,
-        subject: "Launch Point test email",
-        html:
-          "<p>This is a test from the admin diagnostics page. If you are reading it, " +
-          "Resend is configured correctly.</p>"
+        subject: "[Preview] " + preview.subject,
+        html: preview.html
       });
+
+      // An unverified domain should not stop a preview: Resend's shared sender
+      // delivers to the account's own address without verification.
+      if (!result.sent && result.status === 403) {
+        const retry = await email.send({
+          to: process.env.ADMIN_EMAIL,
+          subject: "[Preview] " + preview.subject,
+          html: preview.html,
+          from: email.FALLBACK_FROM
+        });
+        result = Object.assign({}, retry, {
+          usedFallbackSender: true,
+          note:
+            "Your domain is not verified, so this preview was sent from " +
+            email.FALLBACK_FROM +
+            ". That sender only reaches your own Resend account address, so real " +
+            "player confirmations still need the domain verified."
+        });
+      }
+
       out.email.test = result;
     }
   }
