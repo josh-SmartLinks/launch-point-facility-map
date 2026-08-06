@@ -11,6 +11,7 @@
 const Stripe = require("stripe");
 const { getDb } = require("../lib/db");
 const { TOUR_LABELS, PLATFORM_LABELS } = require("../lib/pricing");
+const { resolveTeams } = require("../lib/teams");
 const email = require("../lib/email");
 
 function readRawBody(req) {
@@ -118,6 +119,27 @@ async function handler(req, res) {
         console.error("Paid signup received with no database configured:", session.id);
       }
 
+      // Work out whether this payment completes a pair, so the confirmation
+      // can say so and both players hear about it at the same moment.
+      let partner = null;
+      if (db) {
+        try {
+          const sameTour = await db.signup.findMany({
+            where: { tour: signup.tour, status: "paid", archived: false }
+          });
+          const teams = resolveTeams(sameTour);
+          const me = sameTour.filter((r) => r.stripeSessionId === session.id)[0];
+          const mine = me ? teams[me.id] : null;
+
+          if (mine && (mine.status === "matched" || mine.status === "overridden")) {
+            partner = mine.partner;
+            signup.partnerName = partner ? partner.playerName : null;
+          }
+        } catch (pairErr) {
+          console.error("Could not resolve pairing:", pairErr && pairErr.message);
+        }
+      }
+
       // The player has already paid, so email problems get logged, never
       // thrown — a rejected send must not trigger a Stripe retry.
       if (email.isConfigured()) {
@@ -136,6 +158,31 @@ async function handler(req, res) {
             "reason:", sent.reason,
             sent.detail || ""
           );
+        }
+
+        // A pairing is only confirmed when the second player pays, so this
+        // fires once and tells both of them.
+        if (partner) {
+          const toNew = email.partnerPaired(signup, partner);
+          await email.send({
+            to: signup.email,
+            subject: toNew.subject,
+            html: toNew.html,
+            replyTo: process.env.ADMIN_EMAIL
+          });
+
+          if (partner.email) {
+            const toExisting = email.partnerPaired(
+              { tour: partner.tour, tourLabel: TOUR_LABELS[partner.tour] || partner.tour },
+              { playerName: signup.playerName, phone: signup.phone, email: signup.email }
+            );
+            await email.send({
+              to: partner.email,
+              subject: toExisting.subject,
+              html: toExisting.html,
+              replyTo: process.env.ADMIN_EMAIL
+            });
+          }
         }
 
         if (process.env.ADMIN_EMAIL) {

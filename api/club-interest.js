@@ -100,6 +100,29 @@ module.exports = async (req, res) => {
     JSON.stringify({ facility, contactName, email: emailAddress, phone, city, launchMonitor, interest })
   );
 
+  // Confirmation to the club, so a submission is never a shot into the dark.
+  if (email.isConfigured()) {
+    const confirmation = email.clubConfirmation({
+      facility,
+      contactName,
+      city,
+      launchMonitor,
+      interest,
+      interestLabel: INTEREST[interest]
+    });
+
+    const sent = await email.send({
+      to: emailAddress,
+      subject: confirmation.subject,
+      html: confirmation.html,
+      replyTo: process.env.ADMIN_EMAIL
+    });
+
+    if (!sent.sent) {
+      console.error("Club confirmation not sent to", emailAddress, sent.reason, sent.detail || "");
+    }
+  }
+
   if (email.isConfigured() && process.env.ADMIN_EMAIL) {
     const rows = [
       ["Facility", facility],
