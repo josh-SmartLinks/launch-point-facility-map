@@ -212,12 +212,21 @@
 
       <section class="form-section">
         <h2>Your club</h2>
-        <label class="field">
+        <div class="field combo">
           <span class="field-label">Club</span>
-          <select id="club" required></select>
-        </label>
-        <!-- Set by the club when we know its technology; shown as a picker
-             only when the club runs both or is untagged. -->
+          <input id="club-search" type="search" autocomplete="off" role="combobox"
+                 aria-expanded="false" aria-controls="club-results"
+                 placeholder="Search by club, city, or state" />
+          <ul id="club-results" class="combo-results" role="listbox" hidden></ul>
+          <input type="hidden" id="club" />
+        </div>
+        <div class="near-row">
+          <button type="button" class="platform-chip" id="near-me">FIND A CLUB NEAR ME</button>
+          <span class="near-status" id="near-status"></span>
+        </div>
+        <!-- Only ever shown for a club whose platform we do not have on file.
+             A club we know decides this, so there is nothing to choose and no
+             way to pick the wrong one. -->
         <label class="field" id="platform-field" hidden>
           <span class="field-label">Platform</span>
           <select id="platform">
@@ -307,60 +316,199 @@
       // ---------- Club list, from the same file the map uses ----------
       var PLATFORM_NAMES = { sgt: "SGT / GSPro", trackman: "Trackman" };
       var clubPlatforms = {}; // club name -> ["sgt"] / ["trackman"] / both
+      var clubList = [];      // { name, cities[], venues[{lat,lng}] }
 
-      function fillClubs() {
-        var select = document.getElementById("club");
-        var names = [];
-        var seen = {};
+      function buildClubList() {
+        var byName = {};
 
         if (typeof FACILITIES !== "undefined" && Array.isArray(FACILITIES)) {
           FACILITIES.forEach(function (f) {
-            // A club with two venues appears once in the dropdown, and its
-            // venues' platforms merge into one list.
-            if (!seen[f.name]) {
-              seen[f.name] = true;
-              names.push(f.name);
+            // A club with two venues appears once, carrying both locations.
+            if (!byName[f.name]) {
+              byName[f.name] = { name: f.name, cities: [], venues: [] };
               clubPlatforms[f.name] = [];
+              clubList.push(byName[f.name]);
             }
+            if (f.city && byName[f.name].cities.indexOf(f.city) === -1) {
+              byName[f.name].cities.push(f.city);
+            }
+            byName[f.name].venues.push({ lat: f.lat, lng: f.lng });
             (f.platforms || []).forEach(function (p) {
               if (clubPlatforms[f.name].indexOf(p) === -1) clubPlatforms[f.name].push(p);
             });
           });
         }
-        names.sort(function (a, b) { return a.localeCompare(b); });
+      }
 
-        select.innerHTML = "";
-        var blank = document.createElement("option");
-        blank.value = "";
-        blank.textContent = "Select…";
-        select.appendChild(blank);
+      function clubLabel(c) {
+        var where = c.cities.join(" & ");
+        var label = where ? c.name + " — " + where : c.name;
+        if (c.miles !== undefined) label += " (" + Math.round(c.miles) + " mi)";
+        return label;
+      }
 
-        names.forEach(function (n) {
-          var opt = document.createElement("option");
-          opt.value = n;
-          var tags = clubPlatforms[n] || [];
-          // Show the technology right in the option so the choice is obvious.
-          opt.textContent = tags.length
-            ? n + " (" + tags.map(function (p) { return PLATFORM_NAMES[p] || p; }).join(" & ") + ")"
-            : n;
-          select.appendChild(opt);
-        });
+      var OTHER_CLUB = "Other / not listed";
+      var searchOrder = [];  // current ordering: alphabetical, or by distance
 
-        var other = document.createElement("option");
-        other.value = "Other / not listed";
-        other.textContent = "Other / not listed";
-        select.appendChild(other);
-
-        // Arriving from a pin or list row on the map: ?club=<name>.
-        var fromMap = params.get("club");
-        if (fromMap && seen[fromMap]) select.value = fromMap;
-
-        select.addEventListener("change", syncPlatform);
+      function selectClub(name, label) {
+        document.getElementById("club").value = name;
+        document.getElementById("club-search").value = label || name;
+        closeResults();
         syncPlatform();
       }
 
-      // The club decides the platform, so there is nothing to ask unless the
-      // club runs both — or we have no technology on file for it.
+      function closeResults() {
+        var list = document.getElementById("club-results");
+        list.hidden = true;
+        document.getElementById("club-search").setAttribute("aria-expanded", "false");
+      }
+
+      function openResults(query) {
+        var list = document.getElementById("club-results");
+        var q = String(query || "").trim().toLowerCase();
+
+        var matches = searchOrder.filter(function (c) {
+          if (!q) return true;
+          return (
+            c.name.toLowerCase().indexOf(q) !== -1 ||
+            c.cities.join(" ").toLowerCase().indexOf(q) !== -1
+          );
+        });
+
+        list.innerHTML = "";
+
+        matches.slice(0, 8).forEach(function (c) {
+          var li = document.createElement("li");
+          li.setAttribute("role", "option");
+          li.tabIndex = 0;
+
+          var name = document.createElement("span");
+          name.className = "combo-name";
+          name.textContent = c.name;
+
+          var where = document.createElement("span");
+          where.className = "combo-where";
+          where.textContent =
+            c.cities.join(" & ") + (c.miles !== undefined ? "  ·  " + Math.round(c.miles) + " mi" : "");
+
+          li.appendChild(name);
+          li.appendChild(where);
+
+          var choose = function () { selectClub(c.name, clubLabel(c)); };
+          li.addEventListener("mousedown", function (e) { e.preventDefault(); choose(); });
+          li.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(); }
+          });
+
+          list.appendChild(li);
+        });
+
+        // Always offer the escape hatch for a club not on the list.
+        var other = document.createElement("li");
+        other.setAttribute("role", "option");
+        other.tabIndex = 0;
+        other.className = "combo-other";
+        other.textContent = matches.length ? OTHER_CLUB : "No match. " + OTHER_CLUB;
+        var chooseOther = function () { selectClub(OTHER_CLUB, OTHER_CLUB); };
+        other.addEventListener("mousedown", function (e) { e.preventDefault(); chooseOther(); });
+        other.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); chooseOther(); }
+        });
+        list.appendChild(other);
+
+        list.hidden = false;
+        document.getElementById("club-search").setAttribute("aria-expanded", "true");
+      }
+
+      function fillClubs() {
+        buildClubList();
+        clubList.sort(function (a, b) { return a.name.localeCompare(b.name); });
+        searchOrder = clubList.slice();
+
+        var input = document.getElementById("club-search");
+
+        input.addEventListener("focus", function () { openResults(input.value); });
+        input.addEventListener("input", function () {
+          // Typing after choosing clears the choice until something is picked.
+          document.getElementById("club").value = "";
+          syncPlatform();
+          openResults(input.value);
+        });
+        input.addEventListener("blur", function () { window.setTimeout(closeResults, 120); });
+        input.addEventListener("keydown", function (e) {
+          if (e.key === "Escape") closeResults();
+          if (e.key === "ArrowDown") {
+            var first = document.querySelector("#club-results li");
+            if (first) { e.preventDefault(); first.focus(); }
+          }
+        });
+
+        // Arriving from a pin or list row on the map: ?club=<name>.
+        var fromMap = params.get("club");
+        if (fromMap) {
+          var hit = clubList.filter(function (c) { return c.name === fromMap; })[0];
+          if (hit) selectClub(hit.name, clubLabel(hit));
+          else if (fromMap === OTHER_CLUB) selectClub(OTHER_CLUB, OTHER_CLUB);
+        }
+
+        syncPlatform();
+      }
+
+      // ---------- Nearest club ----------
+      function milesBetween(a, b) {
+        var R = 3958.8;
+        var toRad = function (d) { return (d * Math.PI) / 180; };
+        var dLat = toRad(b.lat - a.lat);
+        var dLng = toRad(b.lng - a.lng);
+        var s =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        return 2 * R * Math.asin(Math.sqrt(s));
+      }
+
+      document.getElementById("near-me").addEventListener("click", function () {
+        var statusEl = document.getElementById("near-status");
+
+        if (!navigator.geolocation) {
+          statusEl.textContent = "This browser cannot share a location.";
+          return;
+        }
+
+        statusEl.textContent = "Locating…";
+
+        navigator.geolocation.getCurrentPosition(
+          function (pos) {
+            var me = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+
+            clubList.forEach(function (c) {
+              // A two-venue club is as close as its nearest venue.
+              c.miles = Math.min.apply(
+                null,
+                c.venues.map(function (v) { return milesBetween(me, v); })
+              );
+            });
+
+            searchOrder = clubList.slice().sort(function (a, b) { return a.miles - b.miles; });
+
+            var closest = searchOrder[0];
+            statusEl.textContent =
+              "Closest: " + closest.name + ", " + Math.round(closest.miles) + " mi away.";
+
+            // Only choose for them when nothing has been picked yet.
+            if (!document.getElementById("club").value) {
+              selectClub(closest.name, clubLabel(closest));
+            }
+            openResults(document.getElementById("club-search").value);
+          },
+          function () {
+            statusEl.textContent = "Could not get your location. Pick your club from the list.";
+          },
+          { timeout: 10000 }
+        );
+      });
+
+      // The club decides the platform. The only case that still asks is a club
+      // with nothing on file, because there is nothing to state.
       function syncPlatform() {
         var club = document.getElementById("club").value;
         var fieldEl = document.getElementById("platform-field");
@@ -378,32 +526,28 @@
           return;
         }
 
-        if (tags.length === 1) {
+        if (tags.length) {
+          // One platform, or both: either way the club settles it, so this is
+          // stated rather than asked. Both means the club fields both series;
+          // the first is the one it competes in.
           selectEl.value = tags[0];
           lockedEl.textContent =
-            "You'll compete in the " + (PLATFORM_NAMES[tags[0]] || tags[0]) + " tour.";
+            "You'll be playing on " + (PLATFORM_NAMES[tags[0]] || tags[0]) + ", set by your club.";
           show(lockedEl);
           hide(fieldEl);
           hide(hintEl);
           return;
         }
 
+        // No technology on file, so there is nothing to state and the player
+        // has to say. This is the only case with a choice.
         selectEl.value = "";
         hide(lockedEl);
         show(fieldEl);
         show(hintEl);
-
-        if (tags.length > 1) {
-          // Club runs both, so let the player say which one they compete on.
-          Array.prototype.forEach.call(selectEl.options, function (opt) {
-            opt.hidden = opt.value !== "" && tags.indexOf(opt.value) === -1;
-          });
-          hintEl.textContent = "Your club runs both. Pick the one you compete on.";
-        } else {
-          Array.prototype.forEach.call(selectEl.options, function (opt) { opt.hidden = false; });
-          hintEl.textContent =
-            "We don't have this club's technology on file. Pick the tour you compete in.";
-        }
+        Array.prototype.forEach.call(selectEl.options, function (opt) { opt.hidden = false; });
+        hintEl.textContent =
+          "We don't have this club's technology on file yet. Pick the one you play on.";
       }
 
       // ---------- Tour choices, priced by the server ----------

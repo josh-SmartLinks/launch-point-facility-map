@@ -800,3 +800,59 @@ button.apply-btn:disabled { opacity: 0.6; cursor: default; }
   margin: 0 0 12px;
 }
 .checkline input { accent-color: var(--lp-blue); }
+
+/* ---------- Club search ---------- */
+.combo { position: relative; }
+.combo input[type="search"] {
+  width: 100%;
+  padding: 11px 12px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--lp-white);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.combo input[type="search"]:focus { outline: none; border-color: var(--lp-blue); }
+
+.combo-results {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--lp-black);
+  border: 1px solid var(--lp-blue);
+}
+.combo-results li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.combo-results li:last-child { border-bottom: none; }
+.combo-results li:hover,
+.combo-results li:focus-visible {
+  background: rgba(17, 121, 191, 0.18);
+  outline: none;
+}
+.combo-name { font-size: 14px; color: var(--lp-white); }
+.combo-where { font-size: 12px; opacity: 0.7; }
+.combo-other { font-size: 13px; opacity: 0.85; }
+
+.near-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  flex-wrap: wrap;
+}
+.near-row .platform-chip { flex: 0 0 auto; padding: 7px 12px; }
+.near-status { font-size: 12.5px; opacity: 0.75; }
