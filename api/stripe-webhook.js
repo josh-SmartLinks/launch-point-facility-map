@@ -14,6 +14,17 @@ const { TOUR_LABELS, PLATFORM_LABELS } = require("../lib/pricing");
 const { resolveTeams } = require("../lib/teams");
 const email = require("../lib/email");
 
+// Records the hit whatever happens to it. Wrapped so logging can never be the
+// reason a webhook fails.
+async function record(db, data) {
+  if (!db) return;
+  try {
+    await db.webhookEvent.create({ data });
+  } catch (err) {
+    console.error("Could not record webhook event:", err && err.message);
+  }
+}
+
 function readRawBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -43,8 +54,15 @@ async function handler(req, res) {
     const raw = await readRawBody(req);
     event = stripe.webhooks.constructEvent(raw, req.headers["stripe-signature"], webhookSecret);
   } catch (err) {
-    // A bad signature means it did not come from Stripe. Reject it.
+    // A bad signature usually means the secret belongs to the other Stripe
+    // mode. Recorded, because otherwise this leaves no trace anywhere the
+    // admin can see.
     console.error("Webhook signature check failed:", err && err.message);
+    await record(getDb(), {
+      type: "unverified",
+      outcome: "rejected",
+      detail: String((err && err.message) || "").slice(0, 400)
+    });
     return res.status(400).json({ error: "Invalid signature" });
   }
 
@@ -159,6 +177,7 @@ async function handler(req, res) {
 
       // The player has already paid, so email problems get logged, never
       // thrown — a rejected send must not trigger a Stripe retry.
+      let emailStatus = email.isConfigured() ? null : "resend not configured";
       if (email.isConfigured()) {
         const confirmation = email.playerConfirmation(signup);
         const sent = await email.send({
@@ -167,6 +186,8 @@ async function handler(req, res) {
           html: confirmation.html,
           replyTo: process.env.ADMIN_EMAIL
         });
+
+        emailStatus = sent.sent ? "sent" : sent.reason + (sent.detail ? ": " + sent.detail : "");
 
         if (!sent.sent) {
           console.error(
@@ -219,11 +240,31 @@ async function handler(req, res) {
       });
     }
 
+    if (event.type === "checkout.session.completed") {
+      await record(db, {
+        type: event.type,
+        sessionId: session.id,
+        outcome: "handled",
+        stored: typeof stored === "undefined" ? false : stored,
+        emailedTo: (session.customer_details && session.customer_details.email) ||
+          session.customer_email || (session.metadata && session.metadata.email) || null,
+        emailStatus: typeof emailStatus === "undefined" ? null : emailStatus
+      });
+    } else {
+      await record(db, { type: event.type, sessionId: session.id || null, outcome: "handled" });
+    }
+
     return res.status(200).json({ received: true, stored: typeof stored === "undefined" ? null : stored });
   } catch (err) {
     // A 500 makes Stripe retry, which is what we want for a transient
     // database problem.
     console.error("Webhook handling failed:", err && err.message);
+    await record(db, {
+      type: event.type,
+      sessionId: (session && session.id) || null,
+      outcome: "failed",
+      detail: String((err && err.message) || "").slice(0, 400)
+    });
     return res.status(500).json({ error: "Handler failed" });
   }
 }

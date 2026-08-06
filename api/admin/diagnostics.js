@@ -61,11 +61,20 @@ module.exports = async (req, res) => {
       out.database.signupsByStatus = byStatus;
 
       const paid = rows.filter((r) => r.paidAt);
+      // Recent hits, so "no email" can be told apart from "Stripe never called".
+      let recent = [];
+      try {
+        recent = await db.webhookEvent.findMany({ orderBy: { createdAt: "desc" }, take: 10 });
+      } catch (logErr) {
+        recent = [{ note: "webhook log unavailable: " + (logErr && logErr.message) }];
+      }
+
       out.webhook = {
+        recentDeliveries: recent,
         confirmedPayments: paid.length,
         lastConfirmedAt: paid.length ? paid[0].paidAt : null,
         note: !paid.length && rows.length
-          ? "Signups exist but none are confirmed paid, so checkout.session.completed is not arriving. In test mode the webhook destination and STRIPE_WEBHOOK_SECRET must both be the test-mode ones."
+          ? "Signups exist but none are confirmed paid. If recentDeliveries is empty, Stripe is not calling this endpoint at all: check the webhook destination is in the same mode as the API key. If it shows rejected, the signing secret is from the other mode."
           : undefined
       };
     } catch (err) {

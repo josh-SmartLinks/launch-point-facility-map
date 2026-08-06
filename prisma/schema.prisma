@@ -90,3 +90,24 @@ model ClubApplication {
   @@index([approved])
   @@index([archived])
 }
+
+// Every webhook hit, including ones rejected before they were understood.
+// Without this, "no email arrived" cannot be told apart from "Stripe never
+// called us", and that difference is the whole diagnosis.
+model WebhookEvent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  type      String  // stripe event type, or "unverified"
+  sessionId String?
+  outcome   String  // rejected | handled | failed
+  detail    String?
+
+  // What the handler managed to do with it.
+  stored      Boolean @default(false)
+  emailedTo   String?
+  emailStatus String?
+
+  @@index([createdAt])
+  @@index([outcome])
+}
