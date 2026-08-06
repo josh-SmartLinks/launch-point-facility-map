@@ -122,6 +122,13 @@ async function run() {
     assert.strictEqual(pricing.quote("bundle").buyIn, 18000);
   });
 
+  test("the test entry is a real 30 cent charge that still nets 30 cents", () => {
+    const q = pricing.quote("test");
+    assert.strictEqual(q.buyIn, 30);
+    const net = q.total - (Math.round(q.total * 0.029) + 30);
+    assert.ok(net >= 30, "test entry nets " + net);
+  });
+
   test("unknown tour is refused", () => {
     assert.strictEqual(pricing.quote("summer"), null);
     assert.strictEqual(pricing.quote(""), null);
@@ -612,6 +619,19 @@ async function run() {
     }
   });
 
+  await test("the test entry can be bought", async () => {
+    const net = interceptFetch(() => jsonResponse({ id: "cs_test_4", url: "https://checkout.stripe.com/t" }));
+    try {
+      const res = makeRes();
+      await checkout(makeReq({ body: Object.assign({}, goodPlayer, { tour: "test" }) }), res);
+      assert.strictEqual(res.statusCode, 200);
+      const sent = decodeURIComponent(net.calls[0].opts.body);
+      assert.ok(sent.indexOf("[unit_amount]=30") !== -1, "test entry not 30 cents");
+    } finally {
+      net.restore();
+    }
+  });
+
   await test("the admin copy goes out alongside the player's", async () => {
     process.env.ADMIN_EMAIL = "josh@launchpointsim.com";
     const fresh = reload("api/stripe-webhook");
@@ -625,6 +645,36 @@ async function run() {
         .map((c) => JSON.parse(c.opts.body).to[0]);
       assert.ok(recipients.indexOf("player@example.com") !== -1, "player missing");
       assert.ok(recipients.indexOf("josh@launchpointsim.com") !== -1, "admin missing");
+    } finally {
+      net.restore();
+    }
+  });
+
+  await test("the player's copy goes to the player, not to the admin address", async () => {
+    // The failure this guards against is both emails landing in the admin
+    // inbox while the player gets nothing.
+    process.env.ADMIN_EMAIL = "josh@launchpointsim.com";
+    const fresh = reload("api/stripe-webhook");
+    const { payload, header } = signedEvent({
+      customer_details: { email: "jakauck@gmail.com" },
+      customer_email: null
+    });
+    const net = interceptFetch(() => jsonResponse({ id: "sent" }));
+    try {
+      const res = makeRes();
+      await fresh(makeRawReq(payload, { "stripe-signature": header }), res);
+
+      const mail = net.calls
+        .filter((c) => c.url.indexOf("resend.com") !== -1)
+        .map((c) => JSON.parse(c.opts.body));
+
+      const toPlayer = mail.filter((m) => m.to[0] === "jakauck@gmail.com");
+      const toAdmin = mail.filter((m) => m.to[0] === "josh@launchpointsim.com");
+
+      assert.strictEqual(toPlayer.length, 1, "player got " + toPlayer.length + " emails");
+      assert.strictEqual(toAdmin.length, 1, "admin got " + toAdmin.length + " emails");
+      assert.ok(/You're in/.test(toPlayer[0].subject), "player subject: " + toPlayer[0].subject);
+      assert.ok(/New signup/.test(toAdmin[0].subject), "admin subject: " + toAdmin[0].subject);
     } finally {
       net.restore();
     }

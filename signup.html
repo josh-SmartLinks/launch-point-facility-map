@@ -541,7 +541,13 @@
         var wrap = document.getElementById("tour-options");
         wrap.innerHTML = "";
 
-        pricing.tours.forEach(function (t) {
+        // The test entry is a real charge and not a registration, so it is
+        // only offered when the URL asks for it: /signup?type=player&test=1
+        var showTest = params.get("test") === "1";
+
+        pricing.tours
+          .filter(function (t) { return t.tour !== "test" || showTest; })
+          .forEach(function (t) {
           var id = "tour-" + t.tour;
 
           var label = document.createElement("label");
@@ -740,7 +746,9 @@
 
           if (type !== "player") {
             // Quote the real range from the server prices.
-            var singles = pricing.tours.filter(function (t) { return t.tour !== "bundle"; });
+            var singles = pricing.tours.filter(function (t) {
+              return t.tour !== "bundle" && t.tour !== "test";
+            });
             var lo = Math.min.apply(null, singles.map(function (t) { return t.buyIn; }));
             var hi = Math.max.apply(null, singles.map(function (t) { return t.buyIn; }));
             // Every tour costs the same right now, so don't print "$60–$60".

@@ -582,34 +582,41 @@
                 partner.appendChild(psub);
                 tr.appendChild(partner);
 
+                // Pick straight from a list. Only players in the same tour are
+                // offered, since a team is per tour.
                 var act = document.createElement("td");
-                var setBtn = document.createElement("button");
-                setBtn.type = "button";
-                setBtn.className = "platform-chip";
-                setBtn.textContent = p.partnerStatus === "overridden" ? "CLEAR PARTNER" : "SET PARTNER";
-                setBtn.addEventListener("click", function () {
-                  if (p.partnerStatus === "overridden") {
-                    setPartner(p.id, null, setBtn);
-                    return;
-                  }
-                  // Offer only players in the same tour, since a team is per tour.
-                  var options = signups.filter(function (o) {
-                    return o.id !== p.id && o.tour === p.tour && !o.archived;
+                var picker = document.createElement("select");
+                picker.className = "partner-select";
+
+                var blank = document.createElement("option");
+                blank.value = "";
+                blank.textContent = "— no partner —";
+                picker.appendChild(blank);
+
+                signups
+                  .filter(function (o) { return o.id !== p.id && o.tour === p.tour && !o.archived; })
+                  .sort(function (a, b) { return a.playerName.localeCompare(b.playerName); })
+                  .forEach(function (o) {
+                    var opt = document.createElement("option");
+                    opt.value = o.id;
+                    opt.textContent = o.playerName + " · " + o.club;
+                    picker.appendChild(opt);
                   });
-                  if (!options.length) {
-                    window.alert("Nobody else has signed up for " + p.tour + " yet.");
-                    return;
-                  }
-                  var prompt = options
-                    .map(function (o, i) { return i + 1 + ". " + o.playerName + " (" + o.club + ")"; })
-                    .join("\n");
-                  var pick = window.prompt("Partner for " + p.playerName + " in " + p.tour + ":\n\n" + prompt + "\n\nEnter a number:");
-                  if (!pick) return;
-                  var chosen = options[Number(pick) - 1];
-                  if (!chosen) { window.alert("No such option."); return; }
-                  setPartner(p.id, chosen.id, setBtn);
+
+                if (picker.options.length === 1) {
+                  blank.textContent = "nobody else in " + p.tour;
+                  picker.disabled = true;
+                }
+
+                // Show who they are with now, however that came about, so the
+                // list reflects reality rather than only manual overrides.
+                if (p.partnerId) picker.value = p.partnerId;
+
+                picker.addEventListener("change", function () {
+                  setPartner(p.id, picker.value || null, picker);
                 });
-                act.appendChild(setBtn);
+
+                act.appendChild(picker);
                 tr.appendChild(act);
 
                 tbody.appendChild(tr);
@@ -626,11 +633,12 @@
           });
       }
 
-      function setPartner(id, partnerId, btn) {
+      function setPartner(id, partnerId, control) {
         hide(errEl);
-        btn.disabled = true;
-        var original = btn.textContent;
-        btn.textContent = "…";
+        var isButton = control.tagName === "BUTTON";
+        var original = isButton ? control.textContent : null;
+        control.disabled = true;
+        if (isButton) control.textContent = "…";
 
         fetch("/api/admin/set-partner", {
           method: "POST",
@@ -647,8 +655,8 @@
             errEl.className = "form-error";
             errEl.textContent = err.message;
             show(errEl);
-            btn.disabled = false;
-            btn.textContent = original;
+            control.disabled = false;
+            if (isButton) control.textContent = original;
           });
       }
 
