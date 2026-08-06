@@ -54,6 +54,12 @@
       <p id="admin-error" class="form-error" hidden></p>
 
       <section id="tab-clubs">
+        <p class="field-hint" id="import-row">
+          The 30 committed clubs from the facility map are not in the database until they are
+          imported. Contact details are left blank, since the committed list does not carry them.
+          <button type="button" class="platform-chip" id="import-btn">IMPORT COMMITTED CLUBS</button>
+        </p>
+
         <div class="table-wrap">
           <table id="clubs-table">
             <thead>
@@ -320,6 +326,38 @@
           renderSignups(data.signups);
         });
       }
+
+      // ---------- Import committed clubs ----------
+      document.getElementById("import-btn").addEventListener("click", function () {
+        var btn = this;
+        hide(errEl);
+        btn.disabled = true;
+        btn.textContent = "IMPORTING…";
+
+        fetch("/api/admin/import-facilities", {
+          method: "POST",
+          credentials: "same-origin"
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            if (!res.ok) throw new Error(res.d.error || "Import failed.");
+            errEl.className = "doc-note";
+            errEl.textContent =
+              "Imported " + res.d.created + " club(s). " + res.d.skipped + " already present." +
+              (res.d.failures.length ? " Failed: " + res.d.failures.join(", ") : "");
+            show(errEl);
+            return refresh();
+          })
+          .catch(function (err) {
+            errEl.className = "form-error";
+            errEl.textContent = err.message;
+            show(errEl);
+          })
+          .then(function () {
+            btn.disabled = false;
+            btn.textContent = "IMPORT COMMITTED CLUBS";
+          });
+      });
 
       // ---------- Tabs ----------
       document.querySelectorAll(".admin-tabs .platform-chip").forEach(function (btn) {
