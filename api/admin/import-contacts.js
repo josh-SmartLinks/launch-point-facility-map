@@ -140,7 +140,18 @@ function findClubs(clubs, name) {
     if (hits.length) return hits;
   }
 
-  return [];
+  // Last resort for a misspelt name: same opening word and most of the rest
+  // shared, e.g. "1872 Golf aclu" against "1872 Golf Club". Reported as a
+  // fuzzy match so a wrong pairing is visible rather than silent.
+  const tokens = k.split(" ").filter(Boolean);
+  hits = clubs.filter((c) => {
+    const ck = key(c.facility).split(" ").filter(Boolean);
+    if (!ck.length || ck[0] !== tokens[0]) return false;
+    const shared = tokens.filter((w) => ck.indexOf(w) !== -1).length;
+    return shared / Math.max(tokens.length, ck.length) >= 0.6;
+  });
+
+  return hits;
 }
 
 // For a row that matched nothing, name the closest club so a typo is obvious
