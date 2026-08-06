@@ -55,6 +55,16 @@ async function handler(req, res) {
   try {
     if (event.type === "checkout.session.completed") {
       const m = session.metadata || {};
+
+      // Stripe reports the address under customer_details on a completed
+      // session and commonly leaves customer_email null, so checking only the
+      // latter meant the confirmation had no recipient and was dropped.
+      const recipient =
+        (session.customer_details && session.customer_details.email) ||
+        session.customer_email ||
+        m.email ||
+        "";
+
       const signup = {
         club: m.club || "Unknown",
         platform: m.platform || "",
@@ -62,7 +72,7 @@ async function handler(req, res) {
         tour: m.tour || "",
         tourLabel: TOUR_LABELS[m.tour] || m.tour || "",
         playerName: m.player || "",
-        email: session.customer_email || "",
+        email: recipient,
         phone: m.phone || "",
         buyInCents: Number(m.buy_in_cents || 0),
         feeCents: Number(m.fee_cents || 0),
@@ -108,12 +118,21 @@ async function handler(req, res) {
       // thrown — a rejected send must not trigger a Stripe retry.
       if (email.isConfigured()) {
         const confirmation = email.playerConfirmation(signup);
-        await email.send({
+        const sent = await email.send({
           to: signup.email,
           subject: confirmation.subject,
           html: confirmation.html,
           replyTo: process.env.ADMIN_EMAIL
         });
+
+        if (!sent.sent) {
+          console.error(
+            "Confirmation not sent for", session.id,
+            "recipient:", JSON.stringify(signup.email),
+            "reason:", sent.reason,
+            sent.detail || ""
+          );
+        }
 
         if (process.env.ADMIN_EMAIL) {
           const notice = email.adminNotification(signup);

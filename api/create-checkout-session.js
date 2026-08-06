@@ -117,6 +117,9 @@ module.exports = async (req, res) => {
     "metadata[tour]": tour,
     "metadata[player]": playerName,
     "metadata[phone]": phone,
+    // Carried explicitly: the completed-session payload often leaves
+    // customer_email null and reports the address under customer_details.
+    "metadata[email]": email,
     "metadata[buy_in_cents]": String(priced.buyIn),
     "metadata[fee_cents]": String(priced.fee)
   };
