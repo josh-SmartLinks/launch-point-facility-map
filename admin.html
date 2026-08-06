@@ -61,6 +61,28 @@
           <button type="button" class="platform-chip" id="import-btn">IMPORT COMMITTED CLUBS</button>
         </p>
 
+        <details class="paste-import">
+          <summary>Paste the form export to fill in phone, location, launch monitor, interest, and notes</summary>
+          <p class="field-hint">
+            Paste the whole export including the header row. Rows are matched to clubs by facility
+            name. Preview first: it reports what it matched, anything it could not, and any fuzzy
+            match, before writing. Blank fields are filled and existing values are kept unless you
+            tick overwrite.
+          </p>
+          <label class="field">
+            <textarea id="paste-text" rows="8" placeholder="Id&#9;Start time&#9;...&#9;Facility name&#9;Phone number&#9;..."></textarea>
+          </label>
+          <label class="checkline">
+            <input type="checkbox" id="paste-overwrite" />
+            <span>Overwrite values that are already set</span>
+          </label>
+          <div class="doc-actions">
+            <button type="button" class="btn-outline display" id="paste-preview">PREVIEW</button>
+            <button type="button" class="apply-btn display" id="paste-apply">IMPORT</button>
+          </div>
+          <pre id="paste-output" class="health-output" hidden></pre>
+        </details>
+
         <div class="table-wrap">
           <table id="clubs-table">
             <thead>
@@ -86,6 +108,8 @@
         </p>
         <div class="doc-actions">
           <button type="button" class="btn-outline display" id="health-refresh">REFRESH</button>
+          <button type="button" class="btn-outline display" id="resend-domains">CHECK RESEND DOMAINS</button>
+          <button type="button" class="btn-outline display" id="resend-verify">VERIFY DOMAIN</button>
           <button type="button" class="apply-btn display" id="health-test-email">SEND TEST EMAIL</button>
         </div>
         <pre id="health-output" class="health-output">Loading…</pre>
@@ -434,6 +458,64 @@
           });
       });
 
+      // ---------- Paste import ----------
+      function pasteImport(dryRun) {
+        var out = document.getElementById("paste-output");
+        var text = document.getElementById("paste-text").value;
+
+        if (!text.trim()) {
+          out.hidden = false;
+          out.textContent = "Paste the export first.";
+          return;
+        }
+
+        out.hidden = false;
+        out.textContent = dryRun ? "Previewing…" : "Importing…";
+
+        fetch("/api/admin/import-contacts", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: text,
+            dryRun: dryRun,
+            overwrite: document.getElementById("paste-overwrite").checked
+          })
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            if (!res.ok) throw new Error(res.d.error || "Import failed.");
+            var d = res.d;
+            var lines = [
+              (d.dryRun ? "PREVIEW (nothing written)" : "IMPORTED"),
+              "rows read: " + d.rows,
+              "matched:   " + d.matchedCount,
+              "unmatched: " + d.unmatchedCount,
+              ""
+            ];
+            if (d.unmatched.length) {
+              lines.push("NOT MATCHED (fix the name and paste again):");
+              d.unmatched.forEach(function (u) { lines.push("  " + u); });
+              lines.push("");
+            }
+            if (d.fuzzy.length) {
+              lines.push("FUZZY MATCHES (check these are right):");
+              d.fuzzy.forEach(function (f) { lines.push("  " + f.submitted + "  ->  " + f.matchedTo); });
+              lines.push("");
+            }
+            lines.push("PER CLUB:");
+            d.matched.forEach(function (m) {
+              lines.push("  " + m.matchedTo + ": " + (m.willSet.length ? m.willSet.join(", ") : "nothing to change"));
+            });
+            out.textContent = lines.join("\n");
+            if (!d.dryRun) refresh();
+          })
+          .catch(function (err) { out.textContent = "Failed: " + err.message; });
+      }
+
+      document.getElementById("paste-preview").addEventListener("click", function () { pasteImport(true); });
+      document.getElementById("paste-apply").addEventListener("click", function () { pasteImport(false); });
+
       // ---------- Tabs ----------
       document.querySelectorAll(".admin-tabs .platform-chip").forEach(function (btn) {
         btn.addEventListener("click", function () {
@@ -466,6 +548,42 @@
 
       document.getElementById("health-refresh").addEventListener("click", function () {
         loadHealth(false);
+      });
+
+      // Ask Resend directly, rather than inferring status from DNS lookups.
+      function resendDomains(verifyId) {
+        var out = document.getElementById("health-output");
+        out.textContent = verifyId ? "Asking Resend to verify…" : "Loading domains…";
+
+        fetch("/api/admin/resend-domains", {
+          method: verifyId ? "POST" : "GET",
+          credentials: "same-origin",
+          headers: verifyId ? { "Content-Type": "application/json" } : undefined,
+          body: verifyId ? JSON.stringify({ verify: true, id: verifyId }) : undefined
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (d) { out.textContent = JSON.stringify(d, null, 2); })
+          .catch(function (err) { out.textContent = "Failed: " + err.message; });
+      }
+
+      document.getElementById("resend-domains").addEventListener("click", function () {
+        resendDomains(null);
+      });
+
+      document.getElementById("resend-verify").addEventListener("click", function () {
+        var out = document.getElementById("health-output");
+        out.textContent = "Finding the domain…";
+
+        // Look up the id first so there is nothing to copy by hand.
+        fetch("/api/admin/resend-domains", { credentials: "same-origin" })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            var list = (d.body && d.body.data) || [];
+            if (!list.length) throw new Error("No domains in this Resend account.");
+            var wanted = list.filter(function (x) { return x.name === "launchpointsim.com"; })[0] || list[0];
+            resendDomains(wanted.id);
+          })
+          .catch(function (err) { out.textContent = "Failed: " + err.message; });
       });
       document.getElementById("health-test-email").addEventListener("click", function () {
         loadHealth(true);

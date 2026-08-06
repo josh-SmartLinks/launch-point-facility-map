@@ -780,3 +780,23 @@ button.apply-btn:disabled { opacity: 0.6; cursor: default; }
 
 .chip-danger { margin-left: 6px; }
 .chip-danger:hover { border-color: #e5484d; color: #e5484d; }
+
+.paste-import {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 12px 16px;
+  margin: 0 0 20px;
+}
+.paste-import summary {
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--lp-blue);
+}
+.paste-import[open] summary { margin-bottom: 12px; }
+.checkline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+.checkline input { accent-color: var(--lp-blue); }
