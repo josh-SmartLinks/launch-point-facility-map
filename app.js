@@ -74,7 +74,7 @@ function popupHtml(f) {
     (platforms ? '<div class="popup-platform">' + escapeHtml(platforms) + "</div>" : "") +
     (f.sim ? '<div class="popup-sim">' + escapeHtml(f.sim) + "</div>" : "") +
     // Straight into signup with this club already chosen.
-    '<a class="popup-signup display" href="/signup.html?type=player&club=' +
+    '<a class="popup-signup display" href="/signup?type=player&club=' +
       encodeURIComponent(f.name) + '">SIGN UP HERE</a>'
   );
 }

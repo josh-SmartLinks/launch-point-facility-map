@@ -52,6 +52,11 @@
         <button type="button" class="platform-chip" data-tab="health">HEALTH</button>
       </div>
 
+      <label class="checkline">
+        <input type="checkbox" id="show-archived" />
+        <span>Show archived</span>
+      </label>
+
       <p id="admin-error" class="form-error" hidden></p>
 
       <section id="tab-clubs">
@@ -182,7 +187,8 @@
           ["Club submissions", t.clubs],
           ["On the map", t.clubsApproved],
           ["Paid signups", t.signupsPaid],
-          ["Pot", money(t.potCents)]
+          ["Pot", money(t.potCents)],
+          ["Archived", (t.clubsArchived || 0) + (t.signupsArchived || 0)]
         ];
         var wrap = document.getElementById("stats");
         wrap.innerHTML = "";
@@ -244,24 +250,38 @@
           tr.appendChild(mapped);
 
           var actions = document.createElement("td");
-          var btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "platform-chip";
-          btn.textContent = c.approved ? "REMOVE" : "APPROVE";
-          btn.addEventListener("click", function () {
-            approve(c, !c.approved, btn);
-          });
-          actions.appendChild(btn);
+          if (!c.archived) {
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "platform-chip";
+            btn.textContent = c.approved ? "TAKE OFF MAP" : "PUT ON MAP";
+            btn.addEventListener("click", function () {
+              approve(c, !c.approved, btn);
+            });
+            actions.appendChild(btn);
+          }
 
-          var del = document.createElement("button");
-          del.type = "button";
-          del.className = "platform-chip chip-danger";
-          del.textContent = "DELETE";
-          del.addEventListener("click", function () {
-            if (!window.confirm('Delete "' + (c.mapName || c.facility) + '"? This cannot be undone.')) return;
-            remove("club", c.id, del);
+          var arch = document.createElement("button");
+          arch.type = "button";
+          arch.className = "platform-chip" + (c.archived ? "" : " chip-danger");
+          arch.textContent = c.archived ? "RESTORE" : "ARCHIVE";
+          arch.addEventListener("click", function () {
+            setArchived("club", c.id, !c.archived, arch);
           });
-          actions.appendChild(del);
+          actions.appendChild(arch);
+
+          // Permanent deletion is only offered once a row is archived.
+          if (c.archived) {
+            var del = document.createElement("button");
+            del.type = "button";
+            del.className = "platform-chip chip-danger";
+            del.textContent = "DELETE FOREVER";
+            del.addEventListener("click", function () {
+              if (!window.confirm('Permanently delete "' + (c.mapName || c.facility) + '"? This cannot be undone.')) return;
+              remove("club", c.id, del);
+            });
+            actions.appendChild(del);
+          }
 
           tr.appendChild(actions);
 
@@ -318,15 +338,27 @@
           tr.appendChild(text("td", s.status === "paid" ? money(s.totalCents) : ""));
 
           var actions = document.createElement("td");
-          var del = document.createElement("button");
-          del.type = "button";
-          del.className = "platform-chip chip-danger";
-          del.textContent = "DELETE";
-          del.addEventListener("click", function () {
-            if (!window.confirm("Delete the signup for " + s.playerName + "?")) return;
-            remove("signup", s.id, del, s.status === "paid");
+          var arch = document.createElement("button");
+          arch.type = "button";
+          arch.className = "platform-chip" + (s.archived ? "" : " chip-danger");
+          arch.textContent = s.archived ? "RESTORE" : "ARCHIVE";
+          arch.addEventListener("click", function () {
+            setArchived("signup", s.id, !s.archived, arch);
           });
-          actions.appendChild(del);
+          actions.appendChild(arch);
+
+          if (s.archived) {
+            var del = document.createElement("button");
+            del.type = "button";
+            del.className = "platform-chip chip-danger";
+            del.textContent = "DELETE FOREVER";
+            del.addEventListener("click", function () {
+              if (!window.confirm("Permanently delete the signup for " + s.playerName + "?")) return;
+              remove("signup", s.id, del, s.status === "paid");
+            });
+            actions.appendChild(del);
+          }
+
           tr.appendChild(actions);
 
           body.appendChild(tr);
@@ -381,6 +413,31 @@
           });
       }
 
+      function setArchived(kind, id, archived, btn) {
+        hide(errEl);
+        btn.disabled = true;
+        btn.textContent = "…";
+
+        fetch("/api/admin/archive", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind: kind, id: id, archived: archived })
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            if (!res.ok) throw new Error(res.d.error || "Could not update.");
+            return refresh();
+          })
+          .catch(function (err) {
+            errEl.className = "form-error";
+            errEl.textContent = err.message;
+            show(errEl);
+            btn.disabled = false;
+            btn.textContent = archived ? "ARCHIVE" : "RESTORE";
+          });
+      }
+
       function remove(kind, id, btn, isPaid) {
         hide(errEl);
         btn.disabled = true;
@@ -418,11 +475,24 @@
           });
       }
 
+      var lastData = null;
+
+      function draw() {
+        if (!lastData) return;
+        var showArchived = document.getElementById("show-archived").checked;
+        var keep = function (r) { return showArchived ? r.archived : !r.archived; };
+
+        renderStats(lastData.totals);
+        renderClubs(lastData.clubs.filter(keep));
+        renderSignups(lastData.signups.filter(keep));
+      }
+
+      document.getElementById("show-archived").addEventListener("change", draw);
+
       function refresh() {
         return load().then(function (data) {
-          renderStats(data.totals);
-          renderClubs(data.clubs);
-          renderSignups(data.signups);
+          lastData = data;
+          draw();
         });
       }
 

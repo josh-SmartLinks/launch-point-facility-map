@@ -24,15 +24,21 @@ module.exports = async (req, res) => {
       db.signup.findMany({ orderBy: { createdAt: "desc" }, take: 500 })
     ]);
 
-    const paid = signups.filter((s) => s.status === "paid");
+    // Archived rows are still returned so the admin page can show them on
+    // request, but every total counts only what is live.
+    const activeClubs = clubs.filter((c) => !c.archived);
+    const activeSignups = signups.filter((s) => !s.archived);
+    const paid = activeSignups.filter((s) => s.status === "paid");
 
     return res.status(200).json({
       clubs,
       signups,
       totals: {
-        clubs: clubs.length,
-        clubsApproved: clubs.filter((c) => c.approved).length,
+        clubs: activeClubs.length,
+        clubsApproved: activeClubs.filter((c) => c.approved).length,
+        clubsArchived: clubs.length - activeClubs.length,
         signupsPaid: paid.length,
+        signupsArchived: signups.length - activeSignups.length,
         // Buy-in only: the card fee is not part of the pot.
         potCents: paid.reduce((sum, s) => sum + (s.buyInCents || 0), 0)
       }

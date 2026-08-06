@@ -1,9 +1,9 @@
-// Delete a club submission or a signup record.
+// Permanent deletion. The normal way to remove something is archive.js, which
+// keeps the record; this destroys it.
 //
-// Test rows and duplicate submissions have to be removable, otherwise the
-// roster stops being trustworthy. Paid signups are protected: deleting the
-// record of money taken should be a deliberate act, so it requires an explicit
-// confirmPaid flag rather than a stray click.
+// Only archived rows can be deleted, so removing anything is always two
+// deliberate steps. Paid signups need confirmPaid on top of that, because the
+// row is the record of money taken.
 
 const auth = require("../../lib/auth");
 const { getDb } = require("../../lib/db");
@@ -32,12 +32,21 @@ module.exports = async (req, res) => {
 
   try {
     if (kind === "club") {
+      const club = await db.clubApplication.findUnique({ where: { id } });
+      if (!club) return res.status(404).json({ error: "Not found." });
+      if (!club.archived) {
+        return res.status(409).json({ error: "Archive it first, then delete." });
+      }
       await db.clubApplication.delete({ where: { id } });
       return res.status(200).json({ ok: true });
     }
 
     const signup = await db.signup.findUnique({ where: { id } });
     if (!signup) return res.status(404).json({ error: "Not found." });
+
+    if (!signup.archived) {
+      return res.status(409).json({ error: "Archive it first, then delete." });
+    }
 
     if (signup.status === "paid" && body.confirmPaid !== true) {
       return res.status(409).json({

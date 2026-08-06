@@ -38,9 +38,15 @@ model Signup {
 
   paidAt DateTime?
 
+  // Hidden from the working roster but kept, because this is the record of a
+  // payment and destroying it should never be routine.
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+
   @@index([tour, platform])
   @@index([club])
   @@index([status])
+  @@index([archived])
 }
 
 // Clubs registering interest in the tour. Free, no payment involved.
@@ -60,10 +66,14 @@ model ClubApplication {
   // Derived once we know it, so a club can be matched to the right series.
   platform String? // sgt | trackman
 
-  // Approval publishes the club to the map. Coordinates are geocoded from
-  // `city` at approval time and can be corrected by hand in the admin page.
+  // Two independent switches, on purpose:
+  //   approved — on the map
+  //   archived — out of the working list entirely, and never on the map
+  // Archiving is how a club leaves; nothing is ever deleted by default.
   approved   Boolean   @default(false)
   approvedAt DateTime?
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
   mapName    String? // overrides `facility` on the map when set
   lat        Float?
   lng        Float?
@@ -71,4 +81,5 @@ model ClubApplication {
   @@index([interest])
   @@index([createdAt])
   @@index([approved])
+  @@index([archived])
 }

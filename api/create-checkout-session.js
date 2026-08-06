@@ -95,8 +95,8 @@ module.exports = async (req, res) => {
 
   const params = {
     mode: "payment",
-    success_url: origin + "/signup.html?status=success&session_id={CHECKOUT_SESSION_ID}",
-    cancel_url: origin + "/signup.html?status=cancelled",
+    success_url: origin + "/signup?status=success&session_id={CHECKOUT_SESSION_ID}",
+    cancel_url: origin + "/signup?status=cancelled",
     customer_email: email,
 
     "line_items[0][quantity]": "1",

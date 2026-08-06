@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
 
   try {
     const approved = await db.clubApplication.findMany({
-      where: { approved: true, lat: { not: null }, lng: { not: null } },
+      where: { approved: true, archived: false, lat: { not: null }, lng: { not: null } },
       orderBy: { approvedAt: "asc" }
     });
 
