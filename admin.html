@@ -49,6 +49,7 @@
       <div class="admin-tabs">
         <button type="button" class="platform-chip active" data-tab="clubs">CLUB SUBMISSIONS</button>
         <button type="button" class="platform-chip" data-tab="signups">PLAYER SIGNUPS</button>
+        <button type="button" class="platform-chip" data-tab="health">HEALTH</button>
       </div>
 
       <p id="admin-error" class="form-error" hidden></p>
@@ -76,6 +77,18 @@
             <tbody></tbody>
           </table>
         </div>
+      </section>
+
+      <section id="tab-health" hidden>
+        <p class="field-hint">
+          What is actually configured on this deployment, and what each provider says when it
+          fails. Sending a test email delivers a real message to the admin address.
+        </p>
+        <div class="doc-actions">
+          <button type="button" class="btn-outline display" id="health-refresh">REFRESH</button>
+          <button type="button" class="apply-btn display" id="health-test-email">SEND TEST EMAIL</button>
+        </div>
+        <pre id="health-output" class="health-output">Loading…</pre>
       </section>
 
       <section id="tab-signups" hidden>
@@ -368,7 +381,32 @@
           var tab = btn.getAttribute("data-tab");
           document.getElementById("tab-clubs").hidden = tab !== "clubs";
           document.getElementById("tab-signups").hidden = tab !== "signups";
+          document.getElementById("tab-health").hidden = tab !== "health";
+          if (tab === "health") loadHealth(false);
         });
+      });
+
+      // ---------- Health ----------
+      function loadHealth(sendTest) {
+        var out = document.getElementById("health-output");
+        out.textContent = sendTest ? "Sending…" : "Loading…";
+
+        fetch("/api/admin/diagnostics", {
+          method: sendTest ? "POST" : "GET",
+          credentials: "same-origin",
+          headers: sendTest ? { "Content-Type": "application/json" } : undefined,
+          body: sendTest ? JSON.stringify({ testEmail: true }) : undefined
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (d) { out.textContent = JSON.stringify(d, null, 2); })
+          .catch(function (err) { out.textContent = "Failed: " + err.message; });
+      }
+
+      document.getElementById("health-refresh").addEventListener("click", function () {
+        loadHealth(false);
+      });
+      document.getElementById("health-test-email").addEventListener("click", function () {
+        loadHealth(true);
       });
 
       // ---------- Auth ----------
