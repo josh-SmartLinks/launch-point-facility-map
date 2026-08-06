@@ -60,6 +60,7 @@ module.exports = async (req, res) => {
   const club = clean(body.club, 120);
   const email = clean(body.email, 200);
   const phone = clean(body.phone, 30);
+  const partnerPhone = clean(body.partnerPhone, 30);
   const playerName = clean(body.playerName, 80);
 
   const priced = quote(tour);
@@ -120,6 +121,7 @@ module.exports = async (req, res) => {
     // Carried explicitly: the completed-session payload often leaves
     // customer_email null and reports the address under customer_details.
     "metadata[email]": email,
+    "metadata[partner_phone]": partnerPhone,
     "metadata[buy_in_cents]": String(priced.buyIn),
     "metadata[fee_cents]": String(priced.fee)
   };
@@ -158,6 +160,7 @@ module.exports = async (req, res) => {
             playerName,
             email,
             phone,
+            partnerPhone: partnerPhone || null,
             buyInCents: priced.buyIn,
             feeCents: priced.fee,
             totalCents: priced.total

@@ -48,6 +48,7 @@
 
       <div class="admin-tabs">
         <button type="button" class="platform-chip active" data-tab="clubs">CLUB SUBMISSIONS</button>
+        <button type="button" class="platform-chip" data-tab="clubview">CLUBS &amp; PLAYERS</button>
         <button type="button" class="platform-chip" data-tab="signups">PLAYER SIGNUPS</button>
         <button type="button" class="platform-chip" data-tab="health">HEALTH</button>
       </div>
@@ -104,6 +105,14 @@
             <tbody></tbody>
           </table>
         </div>
+      </section>
+
+      <section id="tab-clubview" hidden>
+        <p class="field-hint">
+          Every club with its players and teams. Pairing comes from the phone number each player
+          gave; use Set partner to override it.
+        </p>
+        <div id="clubview"></div>
       </section>
 
       <section id="tab-health" hidden>
@@ -475,6 +484,174 @@
           });
       }
 
+      var PARTNER_LABEL = {
+        matched: "Paired",
+        overridden: "Paired (set by you)",
+        one_sided: "Not mutual",
+        waiting: "Waiting on partner",
+        none: "No partner"
+      };
+
+      function renderClubView(clubs, signups) {
+        var wrap = document.getElementById("clubview");
+        wrap.innerHTML = "";
+
+        // Group players by the club they signed up under, so a club with no
+        // signups still shows, and a signup for an unlisted club is not lost.
+        var byClub = {};
+        clubs.forEach(function (c) {
+          var name = c.mapName || c.facility;
+          if (!byClub[name]) byClub[name] = { club: c, players: [] };
+        });
+        signups.forEach(function (s) {
+          if (!byClub[s.club]) byClub[s.club] = { club: null, players: [] };
+          byClub[s.club].players.push(s);
+        });
+
+        Object.keys(byClub)
+          .sort(function (a, b) { return a.localeCompare(b); })
+          .forEach(function (name) {
+            var entry = byClub[name];
+            var c = entry.club;
+            var players = entry.players;
+
+            var box = document.createElement("details");
+            box.className = "club-card";
+            if (players.length) box.open = true;
+
+            var head = document.createElement("summary");
+            var title = document.createElement("span");
+            title.className = "club-title";
+            title.textContent = name;
+            var meta = document.createElement("span");
+            meta.className = "club-meta";
+            meta.textContent =
+              (c ? [c.city, PLATFORMS[c.platform] || c.platform || "platform not set"].filter(Boolean).join(" · ") + " · " : "not a listed club · ") +
+              players.length + (players.length === 1 ? " player" : " players");
+            head.appendChild(title);
+            head.appendChild(meta);
+            box.appendChild(head);
+
+            if (c) {
+              var contact = document.createElement("p");
+              contact.className = "club-contact";
+              contact.textContent =
+                [c.contactName, c.email, c.phone].filter(Boolean).join(" · ") || "No contact on file";
+              box.appendChild(contact);
+            }
+
+            if (!players.length) {
+              var none = document.createElement("p");
+              none.className = "field-hint";
+              none.textContent = "No players signed up yet.";
+              box.appendChild(none);
+            } else {
+              var table = document.createElement("table");
+              table.className = "club-players";
+              var thead = document.createElement("thead");
+              thead.innerHTML =
+                "<tr><th>Player</th><th>Tour</th><th>Status</th><th>Partner</th><th></th></tr>";
+              table.appendChild(thead);
+
+              var tbody = document.createElement("tbody");
+              players.forEach(function (p) {
+                var tr = document.createElement("tr");
+
+                var who = document.createElement("td");
+                who.textContent = p.playerName;
+                var sub = document.createElement("div");
+                sub.className = "cell-sub";
+                sub.textContent = [p.email, p.phone].filter(Boolean).join(" · ");
+                who.appendChild(sub);
+                tr.appendChild(who);
+
+                tr.appendChild(text("td", p.tour));
+
+                var st = document.createElement("td");
+                st.textContent = p.status;
+                st.className = p.status === "paid" ? "cell-yes" : "";
+                tr.appendChild(st);
+
+                var partner = document.createElement("td");
+                partner.textContent = p.partnerName || PARTNER_LABEL[p.partnerStatus] || "—";
+                var psub = document.createElement("div");
+                psub.className = "cell-sub";
+                psub.textContent =
+                  (PARTNER_LABEL[p.partnerStatus] || p.partnerStatus) +
+                  (p.partnerPhone ? " · gave " + p.partnerPhone : "");
+                partner.appendChild(psub);
+                tr.appendChild(partner);
+
+                var act = document.createElement("td");
+                var setBtn = document.createElement("button");
+                setBtn.type = "button";
+                setBtn.className = "platform-chip";
+                setBtn.textContent = p.partnerStatus === "overridden" ? "CLEAR PARTNER" : "SET PARTNER";
+                setBtn.addEventListener("click", function () {
+                  if (p.partnerStatus === "overridden") {
+                    setPartner(p.id, null, setBtn);
+                    return;
+                  }
+                  // Offer only players in the same tour, since a team is per tour.
+                  var options = signups.filter(function (o) {
+                    return o.id !== p.id && o.tour === p.tour && !o.archived;
+                  });
+                  if (!options.length) {
+                    window.alert("Nobody else has signed up for " + p.tour + " yet.");
+                    return;
+                  }
+                  var prompt = options
+                    .map(function (o, i) { return i + 1 + ". " + o.playerName + " (" + o.club + ")"; })
+                    .join("\n");
+                  var pick = window.prompt("Partner for " + p.playerName + " in " + p.tour + ":\n\n" + prompt + "\n\nEnter a number:");
+                  if (!pick) return;
+                  var chosen = options[Number(pick) - 1];
+                  if (!chosen) { window.alert("No such option."); return; }
+                  setPartner(p.id, chosen.id, setBtn);
+                });
+                act.appendChild(setBtn);
+                tr.appendChild(act);
+
+                tbody.appendChild(tr);
+              });
+
+              table.appendChild(tbody);
+              var scroll = document.createElement("div");
+              scroll.className = "table-wrap";
+              scroll.appendChild(table);
+              box.appendChild(scroll);
+            }
+
+            wrap.appendChild(box);
+          });
+      }
+
+      function setPartner(id, partnerId, btn) {
+        hide(errEl);
+        btn.disabled = true;
+        var original = btn.textContent;
+        btn.textContent = "…";
+
+        fetch("/api/admin/set-partner", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: id, partnerId: partnerId })
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            if (!res.ok) throw new Error(res.d.error || "Could not set that pairing.");
+            return refresh();
+          })
+          .catch(function (err) {
+            errEl.className = "form-error";
+            errEl.textContent = err.message;
+            show(errEl);
+            btn.disabled = false;
+            btn.textContent = original;
+          });
+      }
+
       var lastData = null;
 
       function draw() {
@@ -485,6 +662,12 @@
         renderStats(lastData.totals);
         renderClubs(lastData.clubs.filter(keep));
         renderSignups(lastData.signups.filter(keep));
+        // The club view always shows live records; archiving is managed on the
+        // other tabs.
+        renderClubView(
+          lastData.clubs.filter(function (c) { return !c.archived; }),
+          lastData.signups.filter(function (s) { return !s.archived; })
+        );
       }
 
       document.getElementById("show-archived").addEventListener("change", draw);
@@ -598,6 +781,7 @@
           });
           var tab = btn.getAttribute("data-tab");
           document.getElementById("tab-clubs").hidden = tab !== "clubs";
+          document.getElementById("tab-clubview").hidden = tab !== "clubview";
           document.getElementById("tab-signups").hidden = tab !== "signups";
           document.getElementById("tab-health").hidden = tab !== "health";
           if (tab === "health") loadHealth(false);

@@ -31,6 +31,12 @@ model Signup {
   email      String
   phone      String
 
+  // Players pair up by giving their partner's number. Pairing is worked out
+  // from the two numbers; partnerSignupId is set only when an admin overrides
+  // it by hand, and then it wins over whatever the numbers say.
+  partnerPhone    String?
+  partnerSignupId String?
+
   // Split is stored so the pot and the card fee stay separable later.
   buyInCents Int
   feeCents   Int
@@ -47,6 +53,7 @@ model Signup {
   @@index([club])
   @@index([status])
   @@index([archived])
+  @@index([phone])
 }
 
 // Clubs registering interest in the tour. Free, no payment involved.

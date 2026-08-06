@@ -2,6 +2,7 @@
 
 const auth = require("../../lib/auth");
 const { getDb } = require("../../lib/db");
+const { resolveTeams } = require("../../lib/teams");
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
@@ -30,9 +31,21 @@ module.exports = async (req, res) => {
     const activeSignups = signups.filter((s) => !s.archived);
     const paid = activeSignups.filter((s) => s.status === "paid");
 
+    // Pairing is derived, not stored, so it is always current.
+    const teams = resolveTeams(signups);
+    const signupsWithTeams = signups.map((s) => {
+      const t = teams[s.id] || {};
+      return Object.assign({}, s, {
+        partnerStatus: t.status || "none",
+        partnerReason: t.reason || "",
+        partnerName: t.partner ? t.partner.playerName : null,
+        partnerId: t.partner ? t.partner.id : null
+      });
+    });
+
     return res.status(200).json({
       clubs,
-      signups,
+      signups: signupsWithTeams,
       totals: {
         clubs: activeClubs.length,
         clubsApproved: activeClubs.filter((c) => c.approved).length,

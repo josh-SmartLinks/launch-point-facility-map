@@ -248,9 +248,14 @@
           <span class="field-label">Phone</span>
           <input id="phone" type="tel" autocomplete="tel" required maxlength="30" placeholder="555-555-5555" />
         </label>
+        <label class="field">
+          <span class="field-label">Partner's phone number (optional)</span>
+          <input id="partner-phone" type="tel" autocomplete="off" maxlength="30" placeholder="555-555-5555" />
+        </label>
         <p class="field-hint">
-          One entry per player. Pairing players into two-man teams is handled by your club. Your
-          phone is only used to reach you about the tour.
+          One entry per player. Give your partner's number and you'll be paired once they sign up
+          too. Leave it blank and your club will pair you. Your phone is only used to reach you
+          about the tour.
         </p>
       </section>
 
@@ -595,6 +600,7 @@
           tour: selectedTour,
           email: document.getElementById("email").value,
           phone: document.getElementById("phone").value,
+          partnerPhone: document.getElementById("partner-phone").value,
           playerName: document.getElementById("player").value
         };
 

@@ -74,6 +74,7 @@ async function handler(req, res) {
         playerName: m.player || "",
         email: recipient,
         phone: m.phone || "",
+        partnerPhone: m.partner_phone || null,
         buyInCents: Number(m.buy_in_cents || 0),
         feeCents: Number(m.fee_cents || 0),
         totalCents: session.amount_total || 0
@@ -98,6 +99,7 @@ async function handler(req, res) {
               playerName: signup.playerName,
               email: signup.email,
               phone: signup.phone,
+              partnerPhone: signup.partnerPhone,
               buyInCents: signup.buyInCents,
               feeCents: signup.feeCents,
               totalCents: signup.totalCents
@@ -107,7 +109,9 @@ async function handler(req, res) {
             status: "paid",
             paidAt: new Date(),
             paymentIntentId: session.payment_intent || null,
-            totalCents: signup.totalCents
+            totalCents: signup.totalCents,
+            // Kept in step in case the pending row predates the field.
+            partnerPhone: signup.partnerPhone
           }
         });
       } else {
