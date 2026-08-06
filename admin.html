@@ -103,6 +103,7 @@
                 <th>Contact</th>
                 <th>Status</th>
                 <th>Paid</th>
+                <th></th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -227,6 +228,17 @@
             approve(c, !c.approved, btn);
           });
           actions.appendChild(btn);
+
+          var del = document.createElement("button");
+          del.type = "button";
+          del.className = "platform-chip chip-danger";
+          del.textContent = "DELETE";
+          del.addEventListener("click", function () {
+            if (!window.confirm('Delete "' + (c.mapName || c.facility) + '"? This cannot be undone.')) return;
+            remove("club", c.id, del);
+          });
+          actions.appendChild(del);
+
           tr.appendChild(actions);
 
           if (c.notes) {
@@ -280,6 +292,19 @@
           tr.appendChild(status);
 
           tr.appendChild(text("td", s.status === "paid" ? money(s.totalCents) : ""));
+
+          var actions = document.createElement("td");
+          var del = document.createElement("button");
+          del.type = "button";
+          del.className = "platform-chip chip-danger";
+          del.textContent = "DELETE";
+          del.addEventListener("click", function () {
+            if (!window.confirm("Delete the signup for " + s.playerName + "?")) return;
+            remove("signup", s.id, del, s.status === "paid");
+          });
+          actions.appendChild(del);
+          tr.appendChild(actions);
+
           body.appendChild(tr);
         });
       }
@@ -329,6 +354,43 @@
             show(errEl);
             btn.disabled = false;
             btn.textContent = original;
+          });
+      }
+
+      function remove(kind, id, btn, isPaid) {
+        hide(errEl);
+        btn.disabled = true;
+        btn.textContent = "…";
+
+        var payload = { kind: kind, id: id };
+        // Deleting a paid signup destroys the record of money taken, so the
+        // server demands a second, explicit confirmation.
+        if (isPaid) {
+          if (!window.confirm("This signup is PAID. Deleting removes the record of a real payment. Continue?")) {
+            btn.disabled = false;
+            btn.textContent = "DELETE";
+            return;
+          }
+          payload.confirmPaid = true;
+        }
+
+        fetch("/api/admin/delete", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+          .then(function (res) {
+            if (!res.ok) throw new Error(res.d.error || "Could not delete.");
+            return refresh();
+          })
+          .catch(function (err) {
+            errEl.className = "form-error";
+            errEl.textContent = err.message;
+            show(errEl);
+            btn.disabled = false;
+            btn.textContent = "DELETE";
           });
       }
 

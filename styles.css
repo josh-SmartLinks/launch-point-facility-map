@@ -777,3 +777,6 @@ button.apply-btn:disabled { opacity: 0.6; cursor: default; }
   overflow-x: auto;
   white-space: pre;
 }
+
+.chip-danger { margin-left: 6px; }
+.chip-danger:hover { border-color: #e5484d; color: #e5484d; }
