@@ -495,7 +495,11 @@
             ];
             if (d.unmatched.length) {
               lines.push("NOT MATCHED (fix the name and paste again):");
-              d.unmatched.forEach(function (u) { lines.push("  " + u); });
+              d.unmatched.forEach(function (u) {
+                var name = typeof u === "string" ? u : u.facility;
+                var hint = (u && u.didYouMean) ? "   did you mean: " + u.didYouMean : "";
+                lines.push("  " + name + hint);
+              });
               lines.push("");
             }
             if (d.fuzzy.length) {

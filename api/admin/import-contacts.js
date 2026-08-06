@@ -15,6 +15,9 @@
 const auth = require("../../lib/auth");
 const { getDb } = require("../../lib/db");
 
+// Written by the facility import; treated as an empty note here.
+const BOILERPLATE_NOTE = "Imported from the committed facility list.";
+
 // ---------- Parsing ----------
 
 // Splits TSV/CSV respecting quotes, including newlines inside quoted cells.
@@ -116,28 +119,48 @@ function key(name) {
     .trim();
 }
 
-// Exact, then prefix, then containment. Enough to survive "1872 Golf aclu"
-// against "1872 Golf Club" only if a human fixes it, which the report shows.
-function findClub(clubs, name) {
+// Returns every club row matching the name, because a club with two venues is
+// two rows and both want the submitted phone and interest.
+function findClubs(clubs, name) {
   const k = key(name);
-  if (!k) return null;
+  if (!k) return [];
 
-  let hit = clubs.find((c) => key(c.facility) === k);
-  if (hit) return hit;
+  let hits = clubs.filter((c) => key(c.facility) === k);
+  if (hits.length) return hits;
 
-  hit = clubs.find((c) => key(c.facility).startsWith(k) || k.startsWith(key(c.facility)));
-  if (hit) return hit;
+  hits = clubs.filter((c) => key(c.facility).startsWith(k) || k.startsWith(key(c.facility)));
+  if (hits.length) return hits;
 
   const words = k.split(" ").filter((w) => w.length > 3);
   if (words.length) {
-    hit = clubs.find((c) => {
+    hits = clubs.filter((c) => {
       const ck = key(c.facility);
       return words.every((w) => ck.indexOf(w) !== -1);
     });
-    if (hit) return hit;
+    if (hits.length) return hits;
   }
 
-  return null;
+  return [];
+}
+
+// For a row that matched nothing, name the closest club so a typo is obvious
+// instead of just being reported missing.
+function suggest(clubs, name) {
+  const words = key(name).split(" ").filter(Boolean);
+  let best = null;
+  let bestScore = 0;
+
+  clubs.forEach((c) => {
+    const ck = key(c.facility).split(" ").filter(Boolean);
+    const shared = words.filter((w) => ck.indexOf(w) !== -1).length;
+    const score = shared / Math.max(words.length, ck.length);
+    if (score > bestScore) {
+      bestScore = score;
+      best = c.facility;
+    }
+  });
+
+  return bestScore >= 0.4 ? best : null;
 }
 
 async function handler(req, res) {
@@ -193,18 +216,25 @@ async function handler(req, res) {
     const unmatched = [];
 
     for (const row of parsed) {
-      const club = findClub(clubs, row.facility);
+      const hits = findClubs(clubs, row.facility);
 
-      if (!club) {
-        unmatched.push(row.facility);
+      if (!hits.length) {
+        unmatched.push({ facility: row.facility, didYouMean: suggest(clubs, row.facility) });
         continue;
       }
 
-      // Fill blanks by default so a hand correction survives a re-paste.
+      for (const club of hits) {
+
+      // Fill blanks by default so a hand correction survives a re-paste. The
+      // note written by the facility import is boilerplate, not content, so a
+      // real submitted note replaces it.
       const data = {};
+      const isEmpty = (field) =>
+        !club[field] || (field === "notes" && club[field] === BOILERPLATE_NOTE);
+
       const consider = (field, value) => {
         if (!value) return;
-        if (overwrite || !club[field]) data[field] = value;
+        if (overwrite || isEmpty(field)) data[field] = value;
       };
 
       consider("contactName", row.contactName);
@@ -218,13 +248,14 @@ async function handler(req, res) {
 
       matched.push({
         submitted: row.facility,
-        matchedTo: club.facility,
+        matchedTo: club.facility + (hits.length > 1 ? " (" + club.city + ")" : ""),
         exact: key(row.facility) === key(club.facility),
         willSet: Object.keys(data)
       });
 
       if (!dryRun && Object.keys(data).length) {
         await db.clubApplication.update({ where: { id: club.id }, data });
+      }
       }
     }
 
@@ -257,4 +288,4 @@ module.exports = handler;
 
 // Exposed so the parser can be exercised against a real export without a
 // database or a live request.
-module.exports._internals = { parseTable, mapHeader, findClub, key, normaliseInterest };
+module.exports._internals = { parseTable, mapHeader, findClubs, suggest, key, normaliseInterest };
